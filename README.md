@@ -1,66 +1,57 @@
 # Test Automation Framework
 
-Playwright + pytest test automation framework with a Streamlit control-panel
-dashboard, Allure reporting, k6 performance testing, and a generic Site
-Scanner mode for arbitrary URLs.
+Production-ready Python test automation framework: **Playwright + pytest** for
+UI and API testing, a **Streamlit control-panel dashboard**, **Allure**
+reporting with failure screenshots and traces, **k6** performance testing, a
+generic **Site Scanner** for arbitrary URLs, and **GitHub Actions** CI/CD.
 
-> **Status:** Phase 1 (framework skeleton) — full setup/usage documentation
-> lands in Phase 9.
+Demo targets: [SauceDemo](https://www.saucedemo.com) (UI) and
+[JSONPlaceholder](https://jsonplaceholder.typicode.com) (API) — swappable for
+a real application via config only.
 
-## Quick start
+## Setup
+
+Prerequisites: Python 3.11+, Node.js (for the Allure CLI), Java 8+ (Allure),
+and optionally [k6](https://k6.io) and Docker.
 
 ```bash
 python -m venv .venv
-.venv/Scripts/activate          # Windows: .venv\Scripts\activate
+.venv\Scripts\activate                # Windows (POSIX: source .venv/bin/activate)
 pip install -r requirements.txt
 playwright install chromium firefox webkit
-copy .env.example .env
-pytest -m smoke
+npm install -g allure-commandline     # report rendering
+winget install GrafanaLabs.k6         # performance tests (optional)
+copy .env.example .env                # then adjust as needed
 ```
 
-## Cross-browser & parallel execution
+> On machines with an Application Control policy that blocks compiled wheels,
+> install black as pure Python: `pip install --force-reinstall --no-binary black black`.
+
+## Running tests
 
 ```bash
-pytest -m smoke --browser=firefox            # one alternate browser
-pytest --browser chromium --browser firefox --browser webkit   # full matrix
-pytest -m cross_browser --browser chromium --browser firefox --browser webkit
-pytest -n auto                               # parallel via pytest-xdist
-pytest -m regression -n 4 --reruns 1         # parallel + flaky retry
+pytest -m smoke                        # fast critical-path suite
+pytest -m "regression or api"          # full functional coverage
+pytest -m smoke --browser=firefox      # one alternate engine
+pytest --browser chromium --browser firefox --browser webkit   # 3-browser matrix
+pytest -n auto                         # parallel (pytest-xdist)
+pytest -m regression -n 4 --reruns 1   # parallel + flaky retry
+pytest -m performance                  # k6 smoke (skips without k6)
 ```
 
-Repeating `--browser` parametrizes every browser-backed test per engine
-(test ids get `[chromium]`/`[firefox]`/`[webkit]` suffixes); API tests run
-once regardless. Markers compose freely with browser and xdist flags.
+Registered markers: `smoke`, `regression`, `api`, `ui`, `scanner`,
+`cross_browser`, `performance`.
 
 ## URL resolution modes
 
-- **Mode A (fixed environments):** `pytest --env=staging` → URLs come from
-  `config/environments/staging.yaml`.
-- **Mode B (site scanner / explicit override):** `pytest --base-url=https://any.site`
-  or `TARGET_URL=https://any.site` → wins over environment config.
+The same fixture layer serves two modes (highest priority first):
 
-## Streamlit dashboard
-
-```bash
-streamlit run dashboard/app.py
-```
-
-Sidebar: target URL (auto-routes Mode A/B), environment, test types, browsers,
-serial/parallel, plus a k6 section. Tabs: Live Run (streamed output +
-pass/fail counters), Allure Report (embedded latest report), Performance
-Results, Scan Results (Mode B), History (persisted across restarts).
-
-## Performance testing (k6)
-
-Requires the [k6](https://k6.io) binary (`winget install GrafanaLabs.k6`).
-
-- **Dashboard:** set VUs/duration in the sidebar and press *Run k6 Load Test*;
-  results render in the Performance Results tab (latency distribution + trend).
-- **pytest:** `pytest -m performance` runs a lightweight homepage smoke through
-  the same service (skips when k6 is absent).
-- Scripts live in `performance/k6-scripts/`; defaults and thresholds in
-  `performance/perf_config.yaml`. Note: SPA inner routes 404 over plain HTTP,
-  so `flow_paths` lists only real server routes.
+1. **Explicit override (Mode B)** — `--base-url=…` / `TARGET_URL`
+   (`--api-base-url` / `API_TARGET_URL` for the API). Used by the Site Scanner.
+2. **Environment config (Mode A)** — `--env=dev|staging|prod` / `ENV`, resolved
+   through `config/environments/<env>.yaml` with `${VAR:default}` interpolation
+   from `.env`.
+3. **Default** — `dev`.
 
 ## Site Scanner (Mode B)
 
@@ -68,9 +59,97 @@ Requires the [k6](https://k6.io) binary (`winget install GrafanaLabs.k6`).
 pytest tests/scanner --base-url=https://any.site --scan-depth=1 --scan-max-pages=15
 ```
 
-Crawls same-origin links breadth-first up to `--scan-depth`, flags any link
-whose final response is not 2xx/3xx, captures error-severity console output
-and uncaught JS exceptions, and checks the start page's load time against
-`--scan-load-budget-ms` (default 10s). Fully selector-agnostic — no Page
-Objects involved. Without an explicit target URL the scanner tests skip, so
-they can sit in the same run as the fixed-environment suites.
+Breadth-first same-origin crawl that flags non-2xx/3xx links, captures
+error-severity console output and uncaught JS exceptions, and checks the start
+page's load time against `--scan-load-budget-ms` (default 10 s). Fully
+selector-agnostic — no Page Objects. Without a target URL the scanner tests
+skip, so Modes A and B coexist in one run. Results also land in
+`reports/scan_results.json` for the dashboard.
+
+## Streamlit dashboard
+
+```bash
+streamlit run dashboard/app.py
+```
+
+- **Sidebar** — target URL (auto-routes: known URL → Mode A, unknown → Site
+  Scanner), environment, test types, browsers, serial/parallel, and a k6
+  section (VUs / duration).
+- **Live Run** — the exact pytest command, streamed output, live pass/fail
+  counters.
+- **Allure Report** — embedded latest report + full-screen link.
+- **Performance Results** — k6 metrics, latency-distribution chart, trend
+  across runs.
+- **Scan Results** — broken links, console errors, load timing (Mode B).
+- **History** — persisted table of past runs.
+
+## Reporting (Allure)
+
+Every pytest run writes `reports/allure-results` (latest-run semantics).
+Failures attach a full-page screenshot and a Playwright trace zip
+(`reports/traces/`, inspectable via `playwright show-trace`).
+
+```bash
+allure serve reports/allure-results    # one-shot local view
+allure generate reports/allure-results -o reports/allure-report --clean
+```
+
+## Performance testing (k6)
+
+Scripts in `performance/k6-scripts/` (`homepage_load.js`, `checkout_flow.js`)
+are env-driven; defaults and thresholds live in `performance/perf_config.yaml`.
+Triggered from the dashboard sidebar or `pytest -m performance` — both go
+through `dashboard/services/k6_service.py`, which parses k6's JSON summary
+into `reports/k6_summary.json` (+ bounded history for trend charts).
+Note: SPA inner routes 404 over plain HTTP, so `flow_paths` must list real
+server routes.
+
+## Docker
+
+```bash
+docker compose -f docker/docker-compose.yml run --rm tests                  # smoke
+docker compose -f docker/docker-compose.yml run --rm tests \
+    python -m pytest -m regression -n auto
+docker compose -f docker/docker-compose.yml up dashboard                    # :8501
+```
+
+`docker/Dockerfile.playwright` bundles Playwright browsers + k6 so local and
+CI runs share one environment.
+
+## CI/CD (GitHub Actions)
+
+- **ci-tests.yml** — on push/PR to `main`/`develop`: smoke suite across a
+  3-browser matrix with retries; per-browser Allure results uploaded and
+  merged into one artifact. `workflow_dispatch` offers suite
+  (smoke/regression/all), environment, and an optional k6 perf job. Optional
+  GitHub Pages publishing of the Allure report (set repo variable
+  `PUBLISH_ALLURE_PAGES=true`).
+- **nightly-regression.yml** — full suite × 3 browsers + k6 smoke every night
+  at 02:00 UTC.
+
+## Project layout
+
+```
+config/            environment YAMLs + ${VAR} interpolating loader
+framework/
+  core/            BasePage, DriverFactory
+  pages/           SauceDemo Page Objects (strict POM)
+  api/             BaseApiClient, endpoint layer, JSON schemas
+  scanner/         link crawler, console error capture, perf probe
+  utils/           assertions (schema validation), Faker data, logger
+tests/
+  ui/  api/        smoke + regression suites (Mode A)
+  scanner/         generic site scan (Mode B, self-contained fixtures)
+  performance/     pytest-triggered k6 smoke
+dashboard/         Streamlit app: components + services (executor, allure, k6)
+performance/       k6 scripts + perf_config.yaml
+docker/            Dockerfile.playwright + docker-compose.yml
+.github/workflows/ ci-tests.yml, nightly-regression.yml
+reports/           allure-results/report, traces, JSON artifacts (gitignored)
+```
+
+## Coding standards
+
+Strict Page Object Model (no selectors in tests), config only via
+`config_loader.py`/fixtures, type hints + docstrings throughout, `ruff` +
+`black` (`ruff check . && black .`).

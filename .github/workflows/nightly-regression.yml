@@ -1,0 +1,74 @@
+name: Nightly Regression
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # 02:00 UTC every night
+  workflow_dispatch: {}
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  regression:
+    name: full suite (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install ${{ matrix.browser }}
+        run: python -m playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run full suite
+        run: >
+          python -m pytest -m "smoke or regression or api"
+          --browser=${{ matrix.browser }} --env=dev
+          -n auto --reruns 1
+
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-allure-results-${{ matrix.browser }}
+          path: reports/allure-results
+          retention-days: 30
+
+  perf:
+    name: nightly k6 smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - uses: grafana/setup-k6-action@v1
+
+      - name: Run performance smoke
+        run: python -m pytest -m performance --env=dev
+
+      - name: Upload k6 summary
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-k6-summary
+          path: |
+            reports/k6_summary.json
+            reports/k6_summary_raw.json
+          retention-days: 30

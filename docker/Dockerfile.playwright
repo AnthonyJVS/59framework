@@ -1,0 +1,24 @@
+# Unified Playwright + k6 execution environment for local and CI runs.
+# Keep the base image tag roughly in sync with the playwright pin in
+# requirements.txt (~=1.55); the explicit `playwright install` below
+# guarantees browser/library compatibility even on patch drift.
+FROM mcr.microsoft.com/playwright/python:v1.55.0-noble
+
+ARG K6_VERSION=2.1.0
+RUN curl -fsSL "https://github.com/grafana/k6/releases/download/v${K6_VERSION}/k6-v${K6_VERSION}-linux-amd64.tar.gz" \
+      | tar -xz -C /tmp \
+    && mv "/tmp/k6-v${K6_VERSION}-linux-amd64/k6" /usr/local/bin/k6 \
+    && rm -rf "/tmp/k6-v${K6_VERSION}-linux-amd64" \
+    && k6 version
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    && python -m playwright install chromium firefox webkit
+
+COPY . .
+
+# Default: run the smoke suite; override the command for other suites,
+# e.g. docker compose run tests python -m pytest -m regression -n auto
+CMD ["python", "-m", "pytest", "-m", "smoke", "-n", "auto"]

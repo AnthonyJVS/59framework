@@ -1,0 +1,32 @@
+# Containerised test execution and dashboard.
+#
+#   docker compose -f docker/docker-compose.yml run --rm tests
+#   docker compose -f docker/docker-compose.yml run --rm tests \
+#       python -m pytest -m regression -n auto
+#   docker compose -f docker/docker-compose.yml up dashboard   # -> :8501
+
+services:
+  tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.playwright
+    environment:
+      ENV: ${ENV:-dev}
+      TARGET_URL: ${TARGET_URL:-}
+      API_TARGET_URL: ${API_TARGET_URL:-}
+    volumes:
+      - ../reports:/app/reports
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.playwright
+    command: >
+      python -m streamlit run dashboard/app.py
+      --server.address 0.0.0.0 --server.headless true
+    ports:
+      - "8501:8501"
+    environment:
+      ENV: ${ENV:-dev}
+    volumes:
+      - ../reports:/app/reports

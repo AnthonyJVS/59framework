@@ -1,0 +1,151 @@
+name: CI Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Test suite to run
+        type: choice
+        options: [smoke, regression, all]
+        default: regression
+      environment:
+        description: Target environment (config/environments/*.yaml)
+        type: choice
+        options: [dev, staging, prod]
+        default: dev
+      run_perf:
+        description: Also run the k6 performance smoke
+        type: boolean
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  tests:
+    name: tests (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install ${{ matrix.browser }}
+        run: python -m playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Resolve marker expression
+        id: markers
+        run: |
+          case "${{ github.event_name == 'workflow_dispatch' && inputs.suite || 'smoke' }}" in
+            smoke)      echo "expr=smoke" >> "$GITHUB_OUTPUT" ;;
+            regression) echo "expr=regression or api" >> "$GITHUB_OUTPUT" ;;
+            all)        echo "expr=smoke or regression or api" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+      - name: Run tests
+        run: >
+          python -m pytest -m "${{ steps.markers.outputs.expr }}"
+          --browser=${{ matrix.browser }}
+          --env=${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
+          -n auto --reruns 1
+
+      - name: Upload Allure results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: allure-results-${{ matrix.browser }}
+          path: reports/allure-results
+          retention-days: 14
+
+  perf:
+    name: k6 performance smoke
+    if: github.event_name == 'workflow_dispatch' && inputs.run_perf
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - uses: grafana/setup-k6-action@v1
+
+      - name: Run performance smoke
+        run: >
+          python -m pytest -m performance
+          --env=${{ inputs.environment }}
+
+      - name: Upload k6 summary
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-summary
+          path: |
+            reports/k6_summary.json
+            reports/k6_summary_raw.json
+          retention-days: 14
+
+  report:
+    name: Merge Allure results
+    needs: tests
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download per-browser results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: allure-results-*
+          path: reports/allure-results
+          merge-multiple: true
+
+      - name: Upload merged results (baseline publishing)
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-merged
+          path: reports/allure-results
+          retention-days: 30
+
+      # Optional GitHub Pages publishing. Enable by setting the repository
+      # variable PUBLISH_ALLURE_PAGES to 'true' (and enabling Pages from the
+      # gh-pages branch).
+      - name: Set up Java for Allure
+        if: vars.PUBLISH_ALLURE_PAGES == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Generate Allure report
+        if: vars.PUBLISH_ALLURE_PAGES == 'true'
+        run: |
+          npm install -g allure-commandline
+          allure generate reports/allure-results -o reports/allure-report --clean
+
+      - name: Publish report to GitHub Pages
+        if: vars.PUBLISH_ALLURE_PAGES == 'true' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: reports/allure-report
