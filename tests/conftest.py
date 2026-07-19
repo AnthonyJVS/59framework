@@ -85,7 +85,15 @@ def browser_context_args(browser_context_args: dict, base_url: str) -> dict:
 
 
 @pytest.fixture
-def context(context: BrowserContext, env_config: EnvironmentConfig) -> BrowserContext:
-    """Apply the environment's default timeout to every test's browser context."""
+def context(
+    context: BrowserContext, env_config: EnvironmentConfig, browser_name: str
+) -> BrowserContext:
+    """Apply the environment's default timeout to every test's browser context.
+
+    ``browser_name`` must stay in this signature even though it is unused:
+    overriding ``context`` hides the plugin fixture chain from pytest's
+    collection-time closure, and without ``browser_name`` present
+    pytest-playwright cannot parametrize multi-``--browser`` matrix runs.
+    """
     context.set_default_timeout(env_config.default_timeout_ms)
     return context
