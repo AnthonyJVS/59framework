@@ -12,6 +12,7 @@ venv/
 reports/allure-results/
 reports/allure-report/
 reports/traces/
+reports/*.json
 test-results/
 .pytest_cache/
 performance/results/

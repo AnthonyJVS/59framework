@@ -1,0 +1,115 @@
+- generic [ref=e2]:
+  - generic [ref=e7]:
+    - button "keyboard_double_arrow_left" [ref=e248] [cursor=pointer]
+    - generic [ref=e11]:
+      - heading "🧪 Control Panel" [level=1] [ref=e15]
+      - generic [ref=e107]:
+        - generic [ref=e108]:
+          - paragraph [ref=e111]: Target URL
+          - button "Help for Target URL" [ref=e115] [cursor=pointer]
+        - textbox "Target URL" [ref=e121]:
+          - /placeholder: https://… (leave empty to use an environment)
+      - generic [ref=e122]:
+        - paragraph [ref=e126]: Environment (Mode A)
+        - group [ref=e128]:
+          - combobox "Environment (Mode A)" [ref=e129]: dev
+          - button "Open" [ref=e130] [cursor=pointer]
+      - generic [ref=e134]:
+        - paragraph [ref=e138]: Test types
+        - generic [ref=e141]:
+          - generic [ref=e142]:
+            - button "Smoke, close by backspace":
+              - generic "Smoke" [ref=e143]
+            - combobox "Selected Smoke. Test types" [ref=e148]
+          - generic [ref=e149]:
+            - button "Clear all" [ref=e150] [cursor=pointer]
+            - img "open" [ref=e152] [cursor=pointer]
+      - generic [ref=e154]:
+        - generic [ref=e155]:
+          - paragraph [ref=e158]: Browsers
+          - button "Help for Browsers" [ref=e162] [cursor=pointer]
+        - generic [ref=e168]:
+          - generic [ref=e169]:
+            - button "chromium, close by backspace":
+              - generic "chromium" [ref=e170]
+            - combobox "Selected chromium. Browsers" [ref=e175]
+          - generic [ref=e176]:
+            - button "Clear all" [ref=e177] [cursor=pointer]
+            - img "open" [ref=e179] [cursor=pointer]
+      - generic [ref=e181]:
+        - paragraph [ref=e185]: Execution mode
+        - radiogroup "Execution mode" [ref=e186]:
+          - generic [ref=e187] [cursor=pointer]:
+            - radio "Serial" [checked] [ref=e189]
+            - paragraph [ref=e195]: Serial
+          - generic [ref=e196] [cursor=pointer]:
+            - radio "Parallel" [ref=e198]
+            - paragraph [ref=e204]: Parallel
+      - button [active] [ref=e206] [cursor=pointer]:
+        - paragraph [ref=e210]: ▶ Run Tests
+      - separator [ref=e32]
+      - heading "Performance test (k6)" [level=3] [ref=e36]
+      - generic [ref=e211]:
+        - paragraph [ref=e215]: Virtual users
+        - generic [ref=e217]:
+          - spinbutton "Virtual users" [ref=e218]: "5"
+          - generic [ref=e219]:
+            - button "Decrement" [ref=e220] [cursor=pointer]
+            - button "Increment" [ref=e223] [cursor=pointer]
+      - generic [ref=e226]:
+        - paragraph [ref=e230]: Duration (seconds)
+        - generic [ref=e232]:
+          - spinbutton "Duration (seconds)" [ref=e233]: "30"
+          - generic [ref=e234]:
+            - button "Decrement" [ref=e235] [cursor=pointer]
+            - button "Increment" [ref=e238] [cursor=pointer]
+      - button [ref=e242] [cursor=pointer]:
+        - paragraph [ref=e246]: ⚡ Run k6 Load Test
+  - generic [ref=e3]:
+    - banner [ref=e45]:
+      - generic [ref=e48]:
+        - generic [ref=e252]:
+          - img "Running..." [ref=e253]
+          - button "Stop" [ref=e258] [cursor=pointer]
+        - button "Deploy" [ref=e59] [cursor=pointer]
+        - button "Main menu" [ref=e63] [cursor=pointer]
+    - generic [ref=e67]:
+      - heading "Test Automation Control Panel" [level=1] [ref=e72]:
+        - text: Test Automation Control Panel
+        - generic [ref=e73]:
+          - link "Link to heading":
+            - /url: "#test-automation-control-panel"
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - tablist [ref=e76]:
+            - tab [selected] [ref=e77] [cursor=pointer]:
+              - paragraph [ref=e79]: 🔴 Live Run
+            - tab [ref=e81] [cursor=pointer]:
+              - paragraph [ref=e83]: 📊 Allure Report
+            - tab [ref=e84] [cursor=pointer]:
+              - paragraph [ref=e86]: ⚡ Performance Results
+            - tab [ref=e87] [cursor=pointer]:
+              - paragraph [ref=e89]: 🔍 Scan Results
+            - tab [ref=e90] [cursor=pointer]:
+              - paragraph [ref=e92]: 🕘 History
+          - tabpanel "🔴 Live Run" [ref=e93]:
+            - generic [ref=e94]:
+              - status [ref=e97]:
+                - paragraph [ref=e101]:
+                  - text: Running…
+                  - code [ref=e259]: pytest -v --color=no -m smoke --env=dev --browser chromium
+              - generic [ref=e261]:
+                - generic [ref=e266]:
+                  - paragraph [ref=e269]: Passed ✅
+                  - paragraph [ref=e272]: "0"
+                - generic [ref=e277]:
+                  - paragraph [ref=e280]: Failed ❌
+                  - paragraph [ref=e283]: "0"
+                - generic [ref=e288]:
+                  - paragraph [ref=e291]: Errors 💥
+                  - paragraph [ref=e294]: "0"
+                - generic [ref=e299]:
+                  - paragraph [ref=e302]: Skipped ⏭
+                  - paragraph [ref=e305]: "0"
+              - paragraph [ref=e313]: Test run in progress
+        - button "Scroll tabs right" [ref=e103] [cursor=pointer]

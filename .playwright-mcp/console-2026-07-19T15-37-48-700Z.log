@@ -1,0 +1,11 @@
+[    3229ms] [WARNING] Unrecognized feature: 'ambient-light-sensor'. @ http://localhost:8501/static/js/react-dom.DmpKrvBr.js:0
+[    3229ms] [WARNING] Unrecognized feature: 'battery'. @ http://localhost:8501/static/js/react-dom.DmpKrvBr.js:0
+[    3229ms] [WARNING] Unrecognized feature: 'document-domain'. @ http://localhost:8501/static/js/react-dom.DmpKrvBr.js:0
+[    3229ms] [WARNING] Unrecognized feature: 'layout-animations'. @ http://localhost:8501/static/js/react-dom.DmpKrvBr.js:0
+[    3229ms] [WARNING] Unrecognized feature: 'legacy-image-formats'. @ http://localhost:8501/static/js/react-dom.DmpKrvBr.js:0
+[    3229ms] [WARNING] Unrecognized feature: 'oversized-images'. @ http://localhost:8501/static/js/react-dom.DmpKrvBr.js:0
+[    3229ms] [WARNING] Unrecognized feature: 'vr'. @ http://localhost:8501/static/js/react-dom.DmpKrvBr.js:0
+[    3229ms] [WARNING] Unrecognized feature: 'wake-lock'. @ http://localhost:8501/static/js/react-dom.DmpKrvBr.js:0
+[  165026ms] [WARNING] WebSocket onclose @ http://localhost:8501/static/js/index.D7cltBCg.js:64
+[  167399ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8501/_stcore/health:0
+[  167399ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:8501/_stcore/host-config:0

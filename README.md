@@ -39,6 +39,17 @@ once regardless. Markers compose freely with browser and xdist flags.
 - **Mode B (site scanner / explicit override):** `pytest --base-url=https://any.site`
   or `TARGET_URL=https://any.site` → wins over environment config.
 
+## Streamlit dashboard
+
+```bash
+streamlit run dashboard/app.py
+```
+
+Sidebar: target URL (auto-routes Mode A/B), environment, test types, browsers,
+serial/parallel, plus a k6 section. Tabs: Live Run (streamed output +
+pass/fail counters), Allure Report (embedded latest report), Performance
+Results, Scan Results (Mode B), History (persisted across restarts).
+
 ## Site Scanner (Mode B)
 
 ```bash
