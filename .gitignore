@@ -21,8 +21,9 @@ performance/results/
 .ruff_cache/
 .mypy_cache/
 
-# IDE / OS
+# IDE / OS / tooling artifacts
 .vscode/
 .idea/
+.playwright-mcp/
 Thumbs.db
 .DS_Store
