@@ -6,3 +6,4 @@ default_timeout_ms: 10000
 credentials:
   username: "${SAUCE_USERNAME:standard_user}"
   password: "${SAUCE_PASSWORD:secret_sauce}"
+  locked_username: "${SAUCE_LOCKED_USERNAME:locked_out_user}"
