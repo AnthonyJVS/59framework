@@ -6,7 +6,11 @@ from dataclasses import dataclass, field
 
 import streamlit as st
 
-from config.config_loader import available_environments, match_environment_for_url
+from config.config_loader import (
+    available_environments,
+    load_environment,
+    match_environment_for_url,
+)
 from framework.core.driver_factory import SUPPORTED_BROWSERS
 
 _TYPE_TO_MARKER = {
@@ -118,7 +122,7 @@ def render() -> SidebarState:
     st.sidebar.subheader("Performance test (k6)")
     vus = int(st.sidebar.number_input("Virtual users", 1, 200, 5))
     duration_s = int(st.sidebar.number_input("Duration (seconds)", 5, 600, 30))
-    perf_target = target_url or ""
+    perf_target = target_url or load_environment(env_name).base_url
     perf_clicked = st.sidebar.button("⚡ Run k6 Load Test", use_container_width=True)
 
     markers = [_TYPE_TO_MARKER[test_type] for test_type in test_types]

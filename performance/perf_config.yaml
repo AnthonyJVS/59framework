@@ -1,0 +1,17 @@
+# Defaults for k6 runs triggered from the dashboard or pytest.
+# Script paths are relative to performance/k6-scripts/.
+defaults:
+  script: homepage_load.js
+  vus: 5
+  duration_s: 30
+thresholds:
+  p95_ms: 800
+  max_failure_rate: 0.01
+# HTTP-level flow for checkout_flow.js. SauceDemo is a SPA whose inner routes
+# 404 over plain HTTP, so only the app shell is listed; replace with the real
+# flow URLs for a server-rendered application.
+flow_paths:
+  - "/"
+scripts:
+  homepage: homepage_load.js
+  checkout_flow: checkout_flow.js

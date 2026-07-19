@@ -50,6 +50,18 @@ serial/parallel, plus a k6 section. Tabs: Live Run (streamed output +
 pass/fail counters), Allure Report (embedded latest report), Performance
 Results, Scan Results (Mode B), History (persisted across restarts).
 
+## Performance testing (k6)
+
+Requires the [k6](https://k6.io) binary (`winget install GrafanaLabs.k6`).
+
+- **Dashboard:** set VUs/duration in the sidebar and press *Run k6 Load Test*;
+  results render in the Performance Results tab (latency distribution + trend).
+- **pytest:** `pytest -m performance` runs a lightweight homepage smoke through
+  the same service (skips when k6 is absent).
+- Scripts live in `performance/k6-scripts/`; defaults and thresholds in
+  `performance/perf_config.yaml`. Note: SPA inner routes 404 over plain HTTP,
+  so `flow_paths` lists only real server routes.
+
 ## Site Scanner (Mode B)
 
 ```bash
