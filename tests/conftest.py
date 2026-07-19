@@ -45,6 +45,30 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=None,
         help="Explicit API base URL override; bypasses environment config.",
     )
+    # Site Scanner (Mode B) knobs. Defined here because pytest only honours
+    # pytest_addoption in initial conftests; the fixtures using them live in
+    # tests/scanner/conftest.py.
+    parser.addoption(
+        "--scan-depth",
+        action="store",
+        type=int,
+        default=1,
+        help="Site Scanner: crawl depth from the start page.",
+    )
+    parser.addoption(
+        "--scan-max-pages",
+        action="store",
+        type=int,
+        default=15,
+        help="Site Scanner: maximum number of pages to open in the browser.",
+    )
+    parser.addoption(
+        "--scan-load-budget-ms",
+        action="store",
+        type=int,
+        default=10_000,
+        help="Site Scanner: page-load budget for the start page, in ms.",
+    )
 
 
 @pytest.fixture(scope="session")

@@ -38,3 +38,16 @@ once regardless. Markers compose freely with browser and xdist flags.
   `config/environments/staging.yaml`.
 - **Mode B (site scanner / explicit override):** `pytest --base-url=https://any.site`
   or `TARGET_URL=https://any.site` → wins over environment config.
+
+## Site Scanner (Mode B)
+
+```bash
+pytest tests/scanner --base-url=https://any.site --scan-depth=1 --scan-max-pages=15
+```
+
+Crawls same-origin links breadth-first up to `--scan-depth`, flags any link
+whose final response is not 2xx/3xx, captures error-severity console output
+and uncaught JS exceptions, and checks the start page's load time against
+`--scan-load-budget-ms` (default 10s). Fully selector-agnostic — no Page
+Objects involved. Without an explicit target URL the scanner tests skip, so
+they can sit in the same run as the fixed-environment suites.
