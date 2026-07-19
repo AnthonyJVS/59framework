@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Secrets / local config
+.env
+
+# Test & report output
+reports/allure-results/
+reports/allure-report/
+test-results/
+.pytest_cache/
+performance/results/
+
+# Tooling caches
+.ruff_cache/
+.mypy_cache/
+
+# IDE / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

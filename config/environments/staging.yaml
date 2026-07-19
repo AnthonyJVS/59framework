@@ -1,0 +1,8 @@
+# Staging environment. The demo apps have a single public instance, so this
+# mirrors dev — for a real application only these URLs/credentials change.
+base_url: "https://www.saucedemo.com"
+api_base_url: "https://restful-booker.herokuapp.com"
+default_timeout_ms: 10000
+credentials:
+  username: "${SAUCE_USERNAME:standard_user}"
+  password: "${SAUCE_PASSWORD:secret_sauce}"
