@@ -1,7 +1,7 @@
-# Dev environment — points at the public demo apps.
+# Dev environment - points at the public demo apps.
 # All ${VAR:default} placeholders resolve from the process environment / .env.
 base_url: "https://www.saucedemo.com"
-api_base_url: "https://restful-booker.herokuapp.com"
+api_base_url: "https://jsonplaceholder.typicode.com"
 default_timeout_ms: 10000
 credentials:
   username: "${SAUCE_USERNAME:standard_user}"

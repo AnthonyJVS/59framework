@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 from faker import Faker
 
@@ -31,3 +32,11 @@ class DataGenerator:
             last_name=self.faker.last_name(),
             postal_code=self.faker.postcode(),
         )
+
+    def post_payload(self) -> dict[str, Any]:
+        """A create/update payload for the /posts API."""
+        return {
+            "userId": self.faker.random_int(min=1, max=10),
+            "title": self.faker.sentence(nb_words=6).rstrip("."),
+            "body": self.faker.paragraph(nb_sentences=3),
+        }

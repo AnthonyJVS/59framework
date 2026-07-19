@@ -1,7 +1,7 @@
 # Prod environment. Mirrors dev for the public demo apps (see staging.yaml);
 # tighter timeout to surface slow responses that would annoy real users.
 base_url: "https://www.saucedemo.com"
-api_base_url: "https://restful-booker.herokuapp.com"
+api_base_url: "https://jsonplaceholder.typicode.com"
 default_timeout_ms: 8000
 credentials:
   username: "${SAUCE_USERNAME:standard_user}"
