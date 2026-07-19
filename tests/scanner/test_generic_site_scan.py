@@ -7,6 +7,7 @@ Run with e.g.::
 
 from __future__ import annotations
 
+import allure
 import pytest
 
 from tests.scanner.conftest import ScanArtifacts
@@ -17,6 +18,11 @@ pytestmark = [pytest.mark.scanner]
 def test_no_broken_links(scan_artifacts: ScanArtifacts) -> None:
     """Every same-origin link discovered within the depth limit resolves 2xx/3xx."""
     report = scan_artifacts.report
+    allure.attach(
+        "\n".join(f"{result.status or 'ERR'}  {result.url}" for result in report.results),
+        name="checked-links",
+        attachment_type=allure.attachment_type.TEXT,
+    )
     assert report.visited_pages, f"Could not open the start page {report.start_url}"
     details = "\n".join(
         f"  {result.status or 'ERR'}  {result.url}"

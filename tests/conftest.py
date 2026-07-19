@@ -16,9 +16,13 @@ their own fixtures and never touch Page Objects or environment YAMLs.
 from __future__ import annotations
 
 import os
+import re
+from collections.abc import Generator
+from pathlib import Path
 
+import allure
 import pytest
-from playwright.sync_api import BrowserContext
+from playwright.sync_api import BrowserContext, Page
 
 from config.config_loader import (
     DEFAULT_ENVIRONMENT,
@@ -108,11 +112,44 @@ def browser_context_args(browser_context_args: dict, base_url: str) -> dict:
     return {**browser_context_args, **DriverFactory.context_args(base_url=base_url)}
 
 
+TRACES_DIR = Path(__file__).resolve().parents[1] / "reports" / "traces"
+
+
+def _safe_name(node_id: str) -> str:
+    """Turn a pytest node id into a filesystem-safe file stem."""
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", node_id)[-120:]
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo
+) -> Generator[None, None, None]:
+    """Stash the call report on the item and screenshot failures immediately.
+
+    The screenshot happens here — before any fixture teardown — so the page
+    is still open; the trace is saved later in the ``context`` teardown.
+    """
+    outcome = yield
+    report = outcome.get_result()
+    setattr(item, f"rep_{report.when}", report)
+    if report.when == "call" and report.failed:
+        page = item.funcargs.get("page")
+        if isinstance(page, Page) and not page.is_closed():
+            allure.attach(
+                page.screenshot(full_page=True),
+                name="failure-screenshot",
+                attachment_type=allure.attachment_type.PNG,
+            )
+
+
 @pytest.fixture
 def context(
-    context: BrowserContext, env_config: EnvironmentConfig, browser_name: str
-) -> BrowserContext:
-    """Apply the environment's default timeout to every test's browser context.
+    context: BrowserContext,
+    env_config: EnvironmentConfig,
+    browser_name: str,
+    request: pytest.FixtureRequest,
+) -> Generator[BrowserContext, None, None]:
+    """Apply the environment timeout and record a trace, kept only on failure.
 
     ``browser_name`` must stay in this signature even though it is unused:
     overriding ``context`` hides the plugin fixture chain from pytest's
@@ -120,4 +157,17 @@ def context(
     pytest-playwright cannot parametrize multi-``--browser`` matrix runs.
     """
     context.set_default_timeout(env_config.default_timeout_ms)
-    return context
+    context.tracing.start(screenshots=True, snapshots=True, sources=True)
+    yield context
+    call_report = getattr(request.node, "rep_call", None)
+    if call_report is not None and call_report.failed:
+        TRACES_DIR.mkdir(parents=True, exist_ok=True)
+        trace_path = TRACES_DIR / f"{_safe_name(request.node.nodeid)}.zip"
+        context.tracing.stop(path=str(trace_path))
+        allure.attach.file(
+            str(trace_path),
+            name="playwright-trace",
+            extension="zip",
+        )
+    else:
+        context.tracing.stop()

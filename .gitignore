@@ -11,6 +11,7 @@ venv/
 # Test & report output
 reports/allure-results/
 reports/allure-report/
+reports/traces/
 test-results/
 .pytest_cache/
 performance/results/
