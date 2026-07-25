@@ -17,6 +17,9 @@ streamlit~=1.49
 pandas~=2.3
 plotly~=6.3
 
+# --- AI-assisted log analysis ---
+google-genai~=2.14
+
 # --- Test data ---
 Faker~=37.5
 

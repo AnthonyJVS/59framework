@@ -19,7 +19,13 @@ from dashboard.utils.log_streamer import LogStreamer
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 _STATUS_RE = re.compile(r"\b(PASSED|FAILED|ERROR|SKIPPED)\b")
-_SUMMARY_RE = re.compile(r"(\d+) (passed|failed|skipped|error)")
+# Every live per-test status line is emitted before any of pytest's end-of-run
+# recap sections. Those recap sections restate the same statuses: "ERRORS" and
+# "FAILURES" print an "ERROR at setup of <test>" / test-name subheader per
+# item, and `-ra` (see pyproject.toml) reprints every non-passed test again
+# under "short test summary info". Stop counting the moment any of these
+# banners appears, or FAILED/ERROR/SKIPPED get counted 2-3x over.
+_RECAP_HEADER_RE = re.compile(r"^=+\s+(FAILURES|ERRORS|short test summary info)\s+=+\s*$")
 
 
 @dataclass(frozen=True)
@@ -34,6 +40,7 @@ class RunConfig:
     reruns: int = 0
     scan_depth: int | None = None  # scanner-only knobs
     scan_max_pages: int | None = None
+    scan_record_video: bool = False
 
 
 @dataclass
@@ -44,9 +51,15 @@ class RunCounters:
     failed: int = 0
     errors: int = 0
     skipped: int = 0
+    _in_recap: bool = field(default=False, repr=False, compare=False)
 
     def observe(self, line: str) -> None:
         """Update counters from one output line."""
+        if self._in_recap:
+            return
+        if _RECAP_HEADER_RE.match(line.strip()):
+            self._in_recap = True
+            return
         match = _STATUS_RE.search(line)
         if match is None:
             return
@@ -92,6 +105,8 @@ def build_pytest_command(config: RunConfig) -> list[str]:
         command.append(f"--scan-depth={config.scan_depth}")
     if config.scan_max_pages is not None:
         command.append(f"--scan-max-pages={config.scan_max_pages}")
+    if config.scan_record_video:
+        command.append("--scan-record-video")
     return command
 
 

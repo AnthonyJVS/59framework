@@ -5,7 +5,7 @@ from __future__ import annotations
 import streamlit as st
 
 from dashboard.components.sidebar import SidebarState
-from dashboard.services import allure_service, run_history
+from dashboard.services import allure_service, gemini_service, run_history
 from dashboard.services.test_executor import RunConfig, RunCounters, TestExecutor
 
 _TAIL_LINES = 40
@@ -21,6 +21,7 @@ def _run_config_from(state: SidebarState) -> RunConfig:
         parallel=request.parallel,
         scan_depth=state.scan_depth if request.mode == "B" else None,
         scan_max_pages=state.scan_max_pages if request.mode == "B" else None,
+        scan_record_video=state.scan_record_video if request.mode == "B" else False,
     )
 
 
@@ -32,14 +33,43 @@ def render(state: SidebarState) -> None:
     elif "last_run_log" in st.session_state:
         st.caption("Output of the most recent run:")
         st.code(st.session_state["last_run_log"][-8000:], language="text")
+        needs_attention = st.session_state.get("last_run_needs_attention", False)
+        _render_gemini_section(st.session_state["last_run_log"], needs_attention)
     else:
         st.info("Configure a run in the sidebar and press **Run Tests**.")
+
+
+def _render_gemini_section(log_text: str, needs_attention: bool) -> None:
+    """The on-demand "Analyze with Gemini" button and its result, if any."""
+    if not needs_attention:
+        return
+    if not gemini_service.gemini_available():
+        st.button(
+            "🔮 Analyze with Gemini",
+            disabled=True,
+            help="Set GEMINI_API_KEY in .env to enable this (see .env.example).",
+        )
+        return
+    if st.button("🔮 Analyze with Gemini"):
+        st.session_state.pop("last_gemini_error", None)
+        with st.spinner("Asking Gemini…"):
+            try:
+                st.session_state["last_gemini_analysis"] = gemini_service.analyze_log(log_text)
+            except Exception as exc:  # SDK/network/quota errors: surface, don't crash the dashboard
+                st.session_state.pop("last_gemini_analysis", None)
+                st.session_state["last_gemini_error"] = str(exc)
+    if st.session_state.get("last_gemini_error"):
+        st.error(f"Gemini analysis failed: {st.session_state['last_gemini_error']}")
+    elif st.session_state.get("last_gemini_analysis"):
+        st.markdown(st.session_state["last_gemini_analysis"])
 
 
 def _execute(state: SidebarState) -> None:
     request = state.run
     config = _run_config_from(state)
     executor = TestExecutor()
+    st.session_state.pop("last_gemini_analysis", None)
+    st.session_state.pop("last_gemini_error", None)
 
     status_line = st.empty()
     columns = st.columns(4)
@@ -65,6 +95,8 @@ def _execute(state: SidebarState) -> None:
 
     full_log = "\n".join(lines)
     st.session_state["last_run_log"] = full_log
+    needs_attention = result.counters.failed + result.counters.errors > 0
+    st.session_state["last_run_needs_attention"] = needs_attention
     _update_metrics(result.counters)
     if result.exit_code == 0:
         status_line.success(f"Run finished green in {result.duration_s:.1f}s ✅")
@@ -91,6 +123,8 @@ def _execute(state: SidebarState) -> None:
         skipped=result.counters.skipped,
         exit_code=result.exit_code,
     )
+
+    _render_gemini_section(full_log, needs_attention)
 
 
 def config_display(config: RunConfig) -> list[str]:

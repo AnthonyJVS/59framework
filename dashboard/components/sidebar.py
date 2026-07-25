@@ -53,6 +53,7 @@ class SidebarState:
     perf: PerfRequest
     scan_depth: int = 1
     scan_max_pages: int = field(default=15)
+    scan_record_video: bool = False
 
 
 def render() -> SidebarState:
@@ -106,10 +107,16 @@ def render() -> SidebarState:
         st.sidebar.radio("Execution mode", ["Serial", "Parallel"], horizontal=True) == "Parallel"
     )
 
-    scan_depth, scan_max_pages = 1, 15
+    scan_depth, scan_max_pages, scan_record_video = 1, 15, False
     if scanner_forced:
         scan_depth = int(st.sidebar.number_input("Scan depth", 0, 5, 1))
         scan_max_pages = int(st.sidebar.number_input("Max pages to open", 1, 100, 15))
+        scan_record_video = st.sidebar.checkbox(
+            "🎥 Record browser session",
+            value=False,
+            help="Save a video of the crawl to the Scan Video tab. Off by default — "
+            "adds overhead and disk usage on every run.",
+        )
 
     run_clicked = st.sidebar.button(
         "▶ Run Tests",
@@ -145,4 +152,5 @@ def render() -> SidebarState:
         ),
         scan_depth=scan_depth,
         scan_max_pages=scan_max_pages,
+        scan_record_video=scan_record_video,
     )

@@ -13,6 +13,8 @@ reports/allure-results/
 reports/allure-report/
 reports/traces/
 reports/*.json
+reports/*.webm
+reports/_scan_video_tmp/
 test-results/
 .pytest_cache/
 performance/results/
@@ -27,3 +29,10 @@ performance/results/
 .playwright-mcp/
 Thumbs.db
 .DS_Store
+
+# Local-only docs & AI assistant config (not part of the published project)
+guide.md
+claude_code_build_prompt.md
+.claude/
+.agents/
+skills-lock.json

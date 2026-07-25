@@ -20,6 +20,7 @@ from dashboard.components import (  # noqa: E402
     history_panel,
     perf_trigger_panel,
     report_viewer,
+    scan_video_panel,
     scanner_panel,
     sidebar,
     test_runner_panel,
@@ -35,8 +36,15 @@ state = sidebar.render()
 
 st.title("Test Automation Control Panel")
 
-live_tab, report_tab, perf_tab, scan_tab, history_tab = st.tabs(
-    ["🔴 Live Run", "📊 Allure Report", "⚡ Performance Results", "🔍 Scan Results", "🕘 History"]
+live_tab, report_tab, perf_tab, scan_tab, video_tab, history_tab = st.tabs(
+    [
+        "🔴 Live Run",
+        "📊 Allure Report",
+        "⚡ Performance Results",
+        "🔍 Scan Results",
+        "🎥 Scan Video",
+        "🕘 History",
+    ]
 )
 
 with live_tab:
@@ -51,6 +59,9 @@ with perf_tab:
 
 with scan_tab:
     scanner_panel.render()
+
+with video_tab:
+    scan_video_panel.render()
 
 with history_tab:
     history_panel.render()

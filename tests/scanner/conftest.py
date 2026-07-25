@@ -10,20 +10,25 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import time
 from collections.abc import Generator
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import Playwright
+from playwright.sync_api import Playwright, Video
 
 from framework.core.driver_factory import DriverFactory
 from framework.scanner.console_error_capture import ConsoleErrorCapture, ConsoleIssue
 from framework.scanner.link_crawler import CrawlReport, LinkCrawler
 from framework.scanner.perf_probe import NavigationTiming, measure_page_load
 
-SCAN_RESULTS_PATH = Path(__file__).resolve().parents[2] / "reports" / "scan_results.json"
+REPORTS_DIR = Path(__file__).resolve().parents[2] / "reports"
+SCAN_RESULTS_PATH = REPORTS_DIR / "scan_results.json"
+SCAN_VIDEO_PATH = REPORTS_DIR / "scan_video.webm"
+SCAN_VIDEO_TMP_DIR = REPORTS_DIR / "_scan_video_tmp"
 
 
 @dataclass(frozen=True)
@@ -49,8 +54,12 @@ def scan_artifacts(
     playwright: Playwright, scan_target_url: str, request: pytest.FixtureRequest
 ) -> Generator[ScanArtifacts, None, None]:
     """Run one crawl (with console capture) and measure the start page once."""
+    record_video = request.config.getoption("--scan-record-video")
     browser = DriverFactory.launch_browser(playwright, "chromium", headless=True)
-    context = DriverFactory.new_context(browser)
+    context = DriverFactory.new_context(
+        browser,
+        record_video_dir=str(SCAN_VIDEO_TMP_DIR) if record_video else None,
+    )
     page = context.new_page()
     capture = ConsoleErrorCapture(page).attach()
     crawler = LinkCrawler(
@@ -62,8 +71,34 @@ def scan_artifacts(
     timing = measure_page_load(page, scan_target_url)
     artifacts = ScanArtifacts(report=report, console_issues=list(capture.issues), timing=timing)
     _export_scan_results(artifacts)
+    video = page.video if record_video else None
     yield artifacts
     browser.close()
+    if video is not None:
+        _save_scan_video(video)
+
+
+def _save_scan_video(video: Video) -> None:
+    """Move the crawl's recording to the fixed "latest" path, replacing any prior one.
+
+    ``Video.path()`` blocks until Playwright has finished writing the file,
+    which only happens once the owning browser/context has closed. On
+    Windows, the browser process can hold the file handle for a brief moment
+    even after ``close()`` returns, so the rename is retried.
+    """
+    recorded_path = Path(video.path())
+    SCAN_VIDEO_PATH.parent.mkdir(parents=True, exist_ok=True)
+    last_error: OSError | None = None
+    for _ in range(10):
+        try:
+            recorded_path.replace(SCAN_VIDEO_PATH)
+            break
+        except OSError as exc:
+            last_error = exc
+            time.sleep(0.3)
+    else:
+        raise RuntimeError(f"Could not save scan video: {last_error}") from last_error
+    shutil.rmtree(SCAN_VIDEO_TMP_DIR, ignore_errors=True)
 
 
 def _export_scan_results(artifacts: ScanArtifacts) -> None:

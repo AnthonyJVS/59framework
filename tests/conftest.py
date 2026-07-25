@@ -73,6 +73,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=10_000,
         help="Site Scanner: page-load budget for the start page, in ms.",
     )
+    parser.addoption(
+        "--scan-record-video",
+        action="store_true",
+        default=False,
+        help="Site Scanner: record a video of the crawl to reports/scan_video.webm.",
+    )
 
 
 @pytest.fixture(scope="session")
