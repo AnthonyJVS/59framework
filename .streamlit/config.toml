@@ -1,0 +1,10 @@
+# Streamlit settings, picked up when running `streamlit run dashboard/app.py`
+# from the repo root.
+
+[server]
+# The dashboard launches pytest/k6 processes on this machine, so by default it
+# is only reachable locally. Docker overrides this with --server.address 0.0.0.0.
+address = "localhost"
+
+[browser]
+gatherUsageStats = false

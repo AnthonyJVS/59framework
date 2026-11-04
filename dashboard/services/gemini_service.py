@@ -11,7 +11,7 @@ import os
 import time
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 from google import genai
 from google.genai import errors, types
 
@@ -38,15 +38,16 @@ _SYSTEM_INSTRUCTION = (
 
 
 def _current_api_key() -> str | None:
-    """Re-read .env on every call.
+    """Re-read the key from .env on every call, falling back to the process env.
 
-    Unlike the pytest/k6 runs (which spawn a fresh subprocess and pick up
-    .env naturally), this service is called in-process inside the
-    long-running Streamlit server — without ``override=True`` here, editing
-    .env after the dashboard has started would never be picked up.
+    This service runs in-process inside the long-running Streamlit server, so
+    .env is read afresh each time to pick up a key added after startup. Only
+    this one value is read: loading .env into ``os.environ`` with override
+    would clobber variables such as ``ENV``/``TARGET_URL`` for the whole
+    dashboard and every pytest/k6 subprocess it spawns.
     """
-    load_dotenv(ENV_PATH, override=True)
-    return os.environ.get("GEMINI_API_KEY") or None
+    from_file = dotenv_values(ENV_PATH).get("GEMINI_API_KEY") if ENV_PATH.is_file() else None
+    return from_file or os.environ.get("GEMINI_API_KEY") or None
 
 
 def gemini_available() -> bool:

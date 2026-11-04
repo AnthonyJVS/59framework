@@ -30,6 +30,29 @@ env:
   PYTHON_VERSION: "3.12"
 
 jobs:
+  lint-unit:
+    name: lint + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ruff
+        run: ruff check .
+
+      - name: Black
+        run: black --check .
+
+      - name: Unit tests (no browser, no network)
+        run: python -m pytest -m unit
+
   tests:
     name: tests (${{ matrix.browser }})
     runs-on: ubuntu-latest

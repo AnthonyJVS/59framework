@@ -4,12 +4,19 @@
 #   docker compose -f docker/docker-compose.yml run --rm tests \
 #       python -m pytest -m regression -n auto
 #   docker compose -f docker/docker-compose.yml up dashboard   # -> :8501
+#
+# Secrets such as GEMINI_API_KEY come from the repo's .env at runtime via
+# env_file (optional; needs Docker Compose 2.24+). The file itself is kept out
+# of the image by .dockerignore.
 
 services:
   tests:
     build:
       context: ..
       dockerfile: docker/Dockerfile.playwright
+    env_file:
+      - path: ../.env
+        required: false
     environment:
       ENV: ${ENV:-dev}
       TARGET_URL: ${TARGET_URL:-}
@@ -26,7 +33,14 @@ services:
       --server.address 0.0.0.0 --server.headless true
     ports:
       - "8501:8501"
+      # The Allure tab embeds the report from http://127.0.0.1:8899 in the
+      # browser, so the in-container report server must be reachable there.
+      - "127.0.0.1:8899:8899"
+    env_file:
+      - path: ../.env
+        required: false
     environment:
       ENV: ${ENV:-dev}
+      ALLURE_SERVER_HOST: 0.0.0.0
     volumes:
       - ../reports:/app/reports

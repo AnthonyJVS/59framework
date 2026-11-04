@@ -111,6 +111,9 @@ def run_k6(
         return None, -1, f"k6 script not found: {script_path}"
 
     RAW_EXPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # A leftover export from an earlier run would otherwise be parsed and
+    # recorded as this run's result if k6 dies before writing a new one.
+    RAW_EXPORT_PATH.unlink(missing_ok=True)
     perf_config = load_perf_config()
     thresholds = perf_config.get("thresholds", {})
     flow_paths = ",".join(perf_config.get("flow_paths", ["/"]))
@@ -141,7 +144,10 @@ def run_k6(
 
     if not RAW_EXPORT_PATH.is_file():
         return None, exit_code, f"k6 exited with {exit_code} and produced no summary"
-    raw = json.loads(RAW_EXPORT_PATH.read_text(encoding="utf-8"))
+    try:
+        raw = json.loads(RAW_EXPORT_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return None, exit_code, f"k6 exited with {exit_code}; its summary is unreadable: {exc}"
     summary = _parse_summary(raw, config, passed=exit_code == 0)
     _persist(summary)
     message = (

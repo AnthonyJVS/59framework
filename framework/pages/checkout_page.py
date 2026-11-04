@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from playwright.sync_api import Page
+from playwright.sync_api import Locator, Page
 
 from framework.core.base_page import BasePage
 from framework.utils.data_generator import CheckoutInfo
@@ -37,6 +37,10 @@ class CheckoutInfoPage(BasePage):
         self.cancel_button = page.locator('[data-test="cancel"]')
         self.error_banner = page.locator('[data-test="error"]')
 
+    def ready_locator(self) -> Locator:
+        """Rendered once ``continue_button`` is visible."""
+        return self.continue_button
+
     def fill_info(self, info: CheckoutInfo) -> None:
         """Fill the buyer information form (empty strings are left blank)."""
         self.first_name_input.fill(info.first_name)
@@ -47,7 +51,7 @@ class CheckoutInfoPage(BasePage):
         """Fill and submit expecting success; returns the overview page."""
         self.fill_info(info)
         self.continue_button.click()
-        return CheckoutOverviewPage(self.page)
+        return CheckoutOverviewPage(self.page).wait_until_current()
 
     def submit_expecting_error(self, info: CheckoutInfo) -> str:
         """Fill and submit expecting a validation error; returns its text."""
@@ -60,7 +64,7 @@ class CheckoutInfoPage(BasePage):
         from framework.pages.cart_page import CartPage
 
         self.cancel_button.click()
-        return CartPage(self.page)
+        return CartPage(self.page).wait_until_current()
 
 
 class CheckoutOverviewPage(BasePage):
@@ -77,6 +81,10 @@ class CheckoutOverviewPage(BasePage):
         self.total_label = page.locator('[data-test="total-label"]')
         self.finish_button = page.locator('[data-test="finish"]')
         self.cancel_button = page.locator('[data-test="cancel"]')
+
+    def ready_locator(self) -> Locator:
+        """Rendered once ``finish_button`` is visible."""
+        return self.finish_button
 
     def listed_names(self) -> list[str]:
         """Names of the items in the order summary."""
@@ -101,7 +109,7 @@ class CheckoutOverviewPage(BasePage):
     def finish(self) -> CheckoutCompletePage:
         """Place the order; returns the confirmation page."""
         self.finish_button.click()
-        return CheckoutCompletePage(self.page)
+        return CheckoutCompletePage(self.page).wait_until_current()
 
     def cancel(self) -> None:
         """Abort checkout from the overview (returns to the catalog)."""
@@ -118,6 +126,10 @@ class CheckoutCompletePage(BasePage):
         self.header = page.locator('[data-test="complete-header"]')
         self.back_home_button = page.locator('[data-test="back-to-products"]')
 
+    def ready_locator(self) -> Locator:
+        """Rendered once ``header`` is visible."""
+        return self.header
+
     def confirmation_text(self) -> str:
         """The big thank-you headline."""
         return self.header.inner_text()
@@ -127,4 +139,4 @@ class CheckoutCompletePage(BasePage):
         from framework.pages.inventory_page import InventoryPage
 
         self.back_home_button.click()
-        return InventoryPage(self.page)
+        return InventoryPage(self.page).wait_until_current()

@@ -8,6 +8,7 @@ localhost; the Streamlit tab embeds that URL.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -21,6 +22,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = PROJECT_ROOT / "reports" / "allure-results"
 REPORT_DIR = PROJECT_ROOT / "reports" / "allure-report"
 REPORT_PORT = 8899
+#: Interface the report server binds to. Loopback by default; the Docker
+#: dashboard sets 0.0.0.0 so the published port reaches it. The embedded URL
+#: stays 127.0.0.1 either way, because it is opened by the user's browser.
+REPORT_BIND_HOST = os.environ.get("ALLURE_SERVER_HOST", "127.0.0.1")
 
 
 def allure_available() -> bool:
@@ -84,7 +89,7 @@ def ensure_report_server(port: int = REPORT_PORT) -> str:
     """
     if not _port_in_use(port):
         handler = partial(_NoCacheHandler, directory=str(REPORT_DIR))
-        server = ThreadingHTTPServer(("127.0.0.1", port), handler)
+        server = ThreadingHTTPServer((REPORT_BIND_HOST, port), handler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
     index = REPORT_DIR / "index.html"

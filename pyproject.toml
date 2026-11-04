@@ -17,6 +17,7 @@ markers = [
     "scanner: generic site-scanner tests against an arbitrary URL (Mode B)",
     "cross_browser: tests that must run on chromium, firefox and webkit",
     "performance: k6-backed performance checks",
+    "unit: fast tests of framework/dashboard logic, no browser or network",
 ]
 
 [tool.ruff]

@@ -53,27 +53,41 @@ def scan_target_url(request: pytest.FixtureRequest) -> str:
 def scan_artifacts(
     playwright: Playwright, scan_target_url: str, request: pytest.FixtureRequest
 ) -> Generator[ScanArtifacts, None, None]:
-    """Run one crawl (with console capture) and measure the start page once."""
+    """Measure the start page cold, then run one crawl with console capture.
+
+    The load timing is taken first, in its own throwaway context: measuring
+    after the crawl would hit a warm HTTP cache (single-digit-ms "loads") and
+    would also re-trigger the start page's console errors, double-counting them.
+    """
     record_video = request.config.getoption("--scan-record-video")
     browser = DriverFactory.launch_browser(playwright, "chromium", headless=True)
-    context = DriverFactory.new_context(
-        browser,
-        record_video_dir=str(SCAN_VIDEO_TMP_DIR) if record_video else None,
-    )
-    page = context.new_page()
-    capture = ConsoleErrorCapture(page).attach()
-    crawler = LinkCrawler(
-        page,
-        max_depth=request.config.getoption("--scan-depth"),
-        max_pages=request.config.getoption("--scan-max-pages"),
-    )
-    report = crawler.crawl(scan_target_url)
-    timing = measure_page_load(page, scan_target_url)
-    artifacts = ScanArtifacts(report=report, console_issues=list(capture.issues), timing=timing)
-    _export_scan_results(artifacts)
-    video = page.video if record_video else None
-    yield artifacts
-    browser.close()
+    video: Video | None = None
+    try:
+        probe_context = DriverFactory.new_context(browser)
+        try:
+            timing = measure_page_load(probe_context.new_page(), scan_target_url)
+        finally:
+            probe_context.close()
+
+        context = DriverFactory.new_context(
+            browser,
+            record_video_dir=str(SCAN_VIDEO_TMP_DIR) if record_video else None,
+        )
+        page = context.new_page()
+        video = page.video if record_video else None
+        capture = ConsoleErrorCapture(page).attach()
+        crawler = LinkCrawler(
+            page,
+            max_depth=request.config.getoption("--scan-depth"),
+            max_pages=request.config.getoption("--scan-max-pages"),
+        )
+        report = crawler.crawl(scan_target_url)
+        capture.detach()
+        artifacts = ScanArtifacts(report=report, console_issues=list(capture.issues), timing=timing)
+        _export_scan_results(artifacts)
+        yield artifacts
+    finally:
+        browser.close()
     if video is not None:
         _save_scan_video(video)
 

@@ -88,7 +88,7 @@ def render_results() -> None:
         height=350,
         margin=dict(t=50, b=30),
     )
-    st.plotly_chart(figure, use_container_width=True)
+    st.plotly_chart(figure, width="stretch")
 
     runs = k6_service.history()
     if len(runs) > 1:
@@ -105,4 +105,4 @@ def render_results() -> None:
             height=350,
             margin=dict(t=50, b=30),
         )
-        st.plotly_chart(trend, use_container_width=True)
+        st.plotly_chart(trend, width="stretch")

@@ -23,7 +23,9 @@ class DataGenerator:
     def __init__(self, seed: int | None = None) -> None:
         self.faker = Faker()
         if seed is not None:
-            Faker.seed(seed)
+            # Per-instance: Faker.seed() would reseed the shared class-level
+            # generator and make every other DataGenerator deterministic too.
+            self.faker.seed_instance(seed)
 
     def checkout_info(self) -> CheckoutInfo:
         """A realistic buyer for the checkout form."""

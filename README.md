@@ -114,9 +114,10 @@ pytest --browser chromium --browser firefox --browser webkit   # 3-browser matri
 pytest -n auto                         # parallel (pytest-xdist)
 pytest -m regression -n 4 --reruns 1   # parallel + flaky retry
 pytest -m performance                  # k6 smoke (skips without k6)
+pytest -m unit                         # framework/dashboard logic, no browser or network
 ```
 
-Markers: `smoke`, `regression`, `api`, `ui`, `scanner`, `cross_browser`, `performance`.
+Markers: `smoke`, `regression`, `api`, `ui`, `scanner`, `cross_browser`, `performance`, `unit`.
 
 ## URL resolution
 

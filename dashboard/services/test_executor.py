@@ -1,8 +1,9 @@
 """Builds and runs pytest commands from dashboard selections.
 
 Mode routing mirrors the fixture hierarchy in ``tests/conftest.py``:
-an explicit target URL becomes ``--base-url`` (Mode B / Site Scanner),
-otherwise the chosen environment becomes ``--env`` (Mode A).
+an explicit target URL becomes ``--base-url`` and the chosen environment
+becomes ``--env``. Mode B (Site Scanner) sends only the URL; Mode A sends the
+environment, plus the URL when the user pasted one that matched it.
 """
 
 from __future__ import annotations
@@ -89,9 +90,11 @@ def build_pytest_command(config: RunConfig) -> list[str]:
     command = [sys.executable, "-m", "pytest", "-v", "--color=no"]
     if config.markers:
         command += ["-m", " or ".join(config.markers)]
+    # Independent flags: a URL that matches a configured environment runs in
+    # Mode A with *both*, so that environment's credentials and timeouts apply.
     if config.target_url:
         command.append(f"--base-url={config.target_url}")
-    elif config.env_name:
+    if config.env_name:
         command.append(f"--env={config.env_name}")
     is_scanner_only = config.markers == ["scanner"]
     if not is_scanner_only:  # the scanner drives its own chromium instance

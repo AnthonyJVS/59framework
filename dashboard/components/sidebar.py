@@ -121,7 +121,7 @@ def render() -> SidebarState:
     run_clicked = st.sidebar.button(
         "▶ Run Tests",
         type="primary",
-        use_container_width=True,
+        width="stretch",
         disabled=not test_types,
     )
 
@@ -130,7 +130,7 @@ def render() -> SidebarState:
     vus = int(st.sidebar.number_input("Virtual users", 1, 200, 5))
     duration_s = int(st.sidebar.number_input("Duration (seconds)", 5, 600, 30))
     perf_target = target_url or load_environment(env_name).base_url
-    perf_clicked = st.sidebar.button("⚡ Run k6 Load Test", use_container_width=True)
+    perf_clicked = st.sidebar.button("⚡ Run k6 Load Test", width="stretch")
 
     markers = [_TYPE_TO_MARKER[test_type] for test_type in test_types]
     return SidebarState(

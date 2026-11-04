@@ -51,7 +51,7 @@ def render() -> None:
     if broken:
         st.dataframe(
             pd.DataFrame(broken)[["status", "url", "found_on", "error"]],
-            use_container_width=True,
+            width="stretch",
         )
     else:
         st.success("No broken links found.")
@@ -60,7 +60,7 @@ def render() -> None:
     if issues:
         st.dataframe(
             pd.DataFrame(issues)[["kind", "page_url", "text"]],
-            use_container_width=True,
+            width="stretch",
         )
     else:
         st.success("No browser errors captured.")

@@ -4,6 +4,11 @@ Playwright auto-waits on every action, so the helpers here stay deliberately
 thin: navigation relative to the context ``base_url``, load-state waiting and
 shared conveniences. App-specific selectors belong exclusively in subclasses —
 never in test files (strict POM).
+
+Reads such as ``all_inner_texts()`` or ``count()`` do *not* auto-wait, so every
+method that moves to another page returns ``Target(page).wait_until_current()``:
+it blocks until the browser is on the target's path and the target has
+rendered, so the next read cannot see the previous page's (or an empty) DOM.
 """
 
 from __future__ import annotations
@@ -31,6 +36,22 @@ class BasePage:
     def wait_loaded(self) -> Self:
         """Wait for the default ``load`` state."""
         self.page.wait_for_load_state()
+        return self
+
+    def ready_locator(self) -> Locator | None:
+        """An element that is only visible once this page has rendered.
+
+        Subclasses override this; ``None`` means the URL check alone suffices.
+        """
+        return None
+
+    def wait_until_current(self) -> Self:
+        """Wait until the browser is on this page and it has rendered."""
+        expected_path = urlparse(self.url_path).path
+        self.page.wait_for_url(lambda url: urlparse(url).path == expected_path)
+        ready = self.ready_locator()
+        if ready is not None:
+            ready.wait_for(state="visible")
         return self
 
     @property

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from playwright.sync_api import Page
+from playwright.sync_api import Locator, Page
 
 from framework.core.base_page import BasePage
 from framework.pages.inventory_page import product_slug
@@ -27,6 +27,10 @@ class CartPage(BasePage):
         self.checkout_button = page.locator('[data-test="checkout"]')
         self.continue_shopping_button = page.locator('[data-test="continue-shopping"]')
 
+    def ready_locator(self) -> Locator:
+        """Rendered once ``checkout_button`` is visible."""
+        return self.checkout_button
+
     def item_count(self) -> int:
         """Number of line items in the cart."""
         return self.items.count()
@@ -48,11 +52,11 @@ class CartPage(BasePage):
         from framework.pages.checkout_page import CheckoutInfoPage
 
         self.checkout_button.click()
-        return CheckoutInfoPage(self.page)
+        return CheckoutInfoPage(self.page).wait_until_current()
 
     def continue_shopping(self) -> InventoryPage:
         """Go back to the catalog."""
         from framework.pages.inventory_page import InventoryPage
 
         self.continue_shopping_button.click()
-        return InventoryPage(self.page)
+        return InventoryPage(self.page).wait_until_current()
