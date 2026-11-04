@@ -1,0 +1,34 @@
+# Keep secrets, local environments and generated output out of the image.
+# The build context is the repo root (see docker/docker-compose.yml).
+
+# Secrets: pass them at runtime (compose `environment:` / `env_file:`), never bake them in
+.env
+.env.*
+!.env.example
+
+# VCS / tooling
+.git
+.github
+.claude
+.agents
+.playwright-mcp
+.vscode
+.idea
+
+# Python environments and caches
+.venv
+venv
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.ruff_cache
+.mypy_cache
+
+# Generated output (mounted as a volume at runtime instead)
+reports
+test-results
+performance/results
+
+# Local-only docs
+guide.md
+claude_code_build_prompt.md

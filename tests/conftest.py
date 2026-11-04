@@ -79,6 +79,19 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=False,
         help="Site Scanner: record a video of the crawl to reports/scan_video.webm.",
     )
+    parser.addoption(
+        "--scan-external",
+        action="store_true",
+        default=False,
+        help="Site Scanner: also status-check links to other origins (never crawled).",
+    )
+    parser.addoption(
+        "--scan-ignore-console",
+        action="append",
+        default=[],
+        metavar="REGEX",
+        help="Site Scanner: ignore console errors matching this regex (repeatable).",
+    )
 
 
 @pytest.fixture(scope="session")

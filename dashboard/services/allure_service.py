@@ -8,6 +8,7 @@ localhost; the Streamlit tab embeds that URL.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -21,6 +22,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RESULTS_DIR = PROJECT_ROOT / "reports" / "allure-results"
 REPORT_DIR = PROJECT_ROOT / "reports" / "allure-report"
 REPORT_PORT = 8899
+#: Interface the report server binds to. Loopback by default; the Docker
+#: dashboard sets 0.0.0.0 so the published port reaches it. The embedded URL
+#: stays 127.0.0.1 either way, because it is opened by the user's browser.
+REPORT_BIND_HOST = os.environ.get("ALLURE_SERVER_HOST", "127.0.0.1")
 
 
 def allure_available() -> bool:
@@ -40,6 +45,7 @@ def generate_report() -> tuple[bool, str]:
         return False, "Allure commandline not found on PATH (npm i -g allure-commandline)"
     if not has_results():
         return False, f"No test results in {RESULTS_DIR} — run some tests first"
+    _carry_over_history()
     completed = subprocess.run(
         [executable, "generate", str(RESULTS_DIR), "-o", str(REPORT_DIR), "--clean"],
         capture_output=True,
@@ -49,6 +55,19 @@ def generate_report() -> tuple[bool, str]:
     if completed.returncode != 0:
         return False, completed.stderr.strip() or completed.stdout.strip()
     return True, f"Report generated at {REPORT_DIR}"
+
+
+def _carry_over_history() -> None:
+    """Copy the previous report's ``history/`` into the results before generating.
+
+    Allure builds its trend graphs and per-test history from that folder, but
+    every pytest run wipes ``allure-results`` (``--clean-alluredir``) and
+    ``generate --clean`` wipes the report — without this step each report
+    would only ever know about a single run.
+    """
+    previous = REPORT_DIR / "history"
+    if previous.is_dir():
+        shutil.copytree(previous, RESULTS_DIR / "history", dirs_exist_ok=True)
 
 
 def report_summary() -> dict[str, Any] | None:
@@ -84,7 +103,7 @@ def ensure_report_server(port: int = REPORT_PORT) -> str:
     """
     if not _port_in_use(port):
         handler = partial(_NoCacheHandler, directory=str(REPORT_DIR))
-        server = ThreadingHTTPServer(("127.0.0.1", port), handler)
+        server = ThreadingHTTPServer((REPORT_BIND_HOST, port), handler)
         thread = threading.Thread(target=server.serve_forever, daemon=True)
         thread.start()
     index = REPORT_DIR / "index.html"

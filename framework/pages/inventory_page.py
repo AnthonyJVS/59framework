@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from playwright.sync_api import Page
+from playwright.sync_api import Locator, Page
 
 from framework.core.base_page import BasePage
 
@@ -40,6 +40,10 @@ class InventoryPage(BasePage):
         self.menu_button = page.locator("#react-burger-menu-btn")
         self.logout_link = page.locator("#logout_sidebar_link")
 
+    def ready_locator(self) -> Locator:
+        """Rendered once ``sort_select`` is visible."""
+        return self.sort_select
+
     def product_names(self) -> list[str]:
         """Visible product names, in page order."""
         return self.item_names.all_inner_texts()
@@ -71,14 +75,14 @@ class InventoryPage(BasePage):
         from framework.pages.cart_page import CartPage
 
         self.cart_link.click()
-        return CartPage(self.page)
+        return CartPage(self.page).wait_until_current()
 
     def open_product(self, name: str) -> ProductPage:
         """Open a product's detail page by clicking its name."""
         from framework.pages.product_page import ProductPage
 
         self.item_names.filter(has_text=name).first.click()
-        return ProductPage(self.page)
+        return ProductPage(self.page).wait_until_current()
 
     def logout(self) -> LoginPage:
         """Log out through the burger menu; returns the login page."""
@@ -86,4 +90,4 @@ class InventoryPage(BasePage):
 
         self.menu_button.click()
         self.logout_link.click()
-        return LoginPage(self.page)
+        return LoginPage(self.page).wait_until_current()

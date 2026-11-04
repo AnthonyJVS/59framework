@@ -94,14 +94,43 @@ def _parse_summary(raw: dict[str, Any], config: K6Config, passed: bool) -> K6Sum
     )
 
 
+def available_scripts() -> dict[str, str]:
+    """Selectable scripts as ``{label: file}``: perf_config.yaml's ``scripts``
+    map first, then any other ``*.js`` in the scripts folder."""
+    configured = load_perf_config().get("scripts") or {}
+    scripts = {
+        str(label): str(file)
+        for label, file in configured.items()
+        if (SCRIPTS_DIR / str(file)).is_file()
+    }
+    known = set(scripts.values())
+    for path in sorted(SCRIPTS_DIR.glob("*.js")):
+        if path.name not in known:
+            scripts[path.stem] = path.name
+    return scripts
+
+
+def default_settings() -> K6Config:
+    """The ``defaults`` block of perf_config.yaml (target URL left empty)."""
+    defaults = load_perf_config().get("defaults") or {}
+    return K6Config(
+        target_url="",
+        script=str(defaults.get("script", K6Config.script)),
+        vus=int(defaults.get("vus", K6Config.vus)),
+        duration_s=int(defaults.get("duration_s", K6Config.duration_s)),
+    )
+
+
 def run_k6(
     config: K6Config,
     on_line: Callable[[str], None] | None = None,
+    on_start: Callable[[LogStreamer], None] | None = None,
 ) -> tuple[K6Summary | None, int, str]:
     """Run k6; returns (summary, exit_code, message).
 
     Exit code 99 from k6 means "thresholds crossed" — the run still produced
     a valid summary, so it is parsed and flagged rather than discarded.
+    ``on_start`` receives the streamer so another thread can stop the run.
     """
     executable = shutil.which("k6")
     if executable is None:
@@ -111,6 +140,9 @@ def run_k6(
         return None, -1, f"k6 script not found: {script_path}"
 
     RAW_EXPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # A leftover export from an earlier run would otherwise be parsed and
+    # recorded as this run's result if k6 dies before writing a new one.
+    RAW_EXPORT_PATH.unlink(missing_ok=True)
     perf_config = load_perf_config()
     thresholds = perf_config.get("thresholds", {})
     flow_paths = ",".join(perf_config.get("flow_paths", ["/"]))
@@ -134,6 +166,8 @@ def run_k6(
         str(script_path),
     ]
     streamer = LogStreamer(command, cwd=PROJECT_ROOT)
+    if on_start is not None:
+        on_start(streamer)
     for line in streamer.stream():
         if on_line is not None:
             on_line(line)
@@ -141,7 +175,10 @@ def run_k6(
 
     if not RAW_EXPORT_PATH.is_file():
         return None, exit_code, f"k6 exited with {exit_code} and produced no summary"
-    raw = json.loads(RAW_EXPORT_PATH.read_text(encoding="utf-8"))
+    try:
+        raw = json.loads(RAW_EXPORT_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return None, exit_code, f"k6 exited with {exit_code}; its summary is unreadable: {exc}"
     summary = _parse_summary(raw, config, passed=exit_code == 0)
     _persist(summary)
     message = (
@@ -183,3 +220,16 @@ def history() -> list[dict[str, Any]]:
     except json.JSONDecodeError:
         return []
     return entries if isinstance(entries, list) else []
+
+
+def comparable_runs(
+    runs: list[dict[str, Any]], target_url: str, script: str
+) -> list[dict[str, Any]]:
+    """Runs against the same target with the same script (newest first).
+
+    Trends and deltas only mean something between like-for-like runs; mixing
+    targets or scripts in one line chart would be misleading.
+    """
+    return [
+        run for run in runs if run.get("target_url") == target_url and run.get("script") == script
+    ]

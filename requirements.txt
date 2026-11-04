@@ -1,5 +1,5 @@
 # --- Browser automation & test runner ---
-playwright~=1.55
+playwright~=1.64  # keep in sync with the image tag in docker/Dockerfile.playwright
 pytest~=8.4
 pytest-playwright~=0.7
 pytest-xdist~=3.8
@@ -13,9 +13,8 @@ jsonschema~=4.25
 allure-pytest~=2.15
 
 # --- Dashboard ---
-streamlit~=1.49
+streamlit~=1.66  # needed for width="stretch" (use_container_width is deprecated)
 pandas~=2.3
-plotly~=6.3
 
 # --- AI-assisted log analysis ---
 google-genai~=2.14

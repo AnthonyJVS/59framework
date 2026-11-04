@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from playwright.sync_api import Page
+from playwright.sync_api import Locator, Page
 
 from framework.core.base_page import BasePage
 from framework.pages.inventory_page import InventoryPage
@@ -20,6 +20,10 @@ class LoginPage(BasePage):
         self.login_button = page.locator('[data-test="login-button"]')
         self.error_banner = page.locator('[data-test="error"]')
 
+    def ready_locator(self) -> Locator:
+        """Rendered once ``login_button`` is visible."""
+        return self.login_button
+
     def submit_credentials(self, username: str, password: str) -> None:
         """Fill and submit the form without asserting the outcome."""
         self.username_input.fill(username)
@@ -29,7 +33,7 @@ class LoginPage(BasePage):
     def login(self, username: str, password: str) -> InventoryPage:
         """Log in expecting success; returns the landing (inventory) page."""
         self.submit_credentials(username, password)
-        return InventoryPage(self.page)
+        return InventoryPage(self.page).wait_until_current()
 
     def login_expecting_error(self, username: str, password: str) -> str:
         """Log in expecting failure; returns the displayed error text."""

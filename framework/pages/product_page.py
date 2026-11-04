@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from playwright.sync_api import Page
+from playwright.sync_api import Locator, Page
 
 from framework.core.base_page import BasePage
 
@@ -23,6 +23,10 @@ class ProductPage(BasePage):
         self.price_label = page.locator('[data-test="inventory-item-price"]')
         self.back_button = page.locator('[data-test="back-to-products"]')
 
+    def ready_locator(self) -> Locator:
+        """Rendered once ``back_button`` is visible."""
+        return self.back_button
+
     def product_name(self) -> str:
         """Displayed product name."""
         return self.name_label.inner_text()
@@ -36,4 +40,4 @@ class ProductPage(BasePage):
         from framework.pages.inventory_page import InventoryPage
 
         self.back_button.click()
-        return InventoryPage(self.page)
+        return InventoryPage(self.page).wait_until_current()

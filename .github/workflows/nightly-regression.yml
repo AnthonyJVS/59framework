@@ -44,6 +44,41 @@ jobs:
           path: reports/allure-results
           retention-days: 30
 
+  report:
+    name: Nightly report
+    needs: regression
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download per-browser results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: nightly-allure-results-*
+          path: reports/allure-results
+          merge-multiple: true
+
+      - name: Job summary
+        run: python .github/scripts/allure_summary.py reports/allure-results "Nightly regression"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Generate Allure report
+        run: |
+          npm install -g allure-commandline
+          allure generate reports/allure-results -o reports/allure-report --clean
+
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-allure-report
+          path: reports/allure-report
+          retention-days: 30
+
   perf:
     name: nightly k6 smoke
     runs-on: ubuntu-latest

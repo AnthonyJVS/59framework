@@ -30,6 +30,29 @@ env:
   PYTHON_VERSION: "3.12"
 
 jobs:
+  lint-unit:
+    name: lint + unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Ruff
+        run: ruff check .
+
+      - name: Black
+        run: black --check .
+
+      - name: Unit tests (no browser, no network)
+        run: python -m pytest -m unit
+
   tests:
     name: tests (${{ matrix.browser }})
     runs-on: ubuntu-latest
@@ -66,6 +89,10 @@ jobs:
           --browser=${{ matrix.browser }}
           --env=${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'dev' }}
           -n auto --reruns 1
+
+      - name: Job summary
+        if: always()
+        run: python .github/scripts/allure_summary.py reports/allure-results "${{ matrix.browser }}"
 
       - name: Upload Allure results
         uses: actions/upload-artifact@v4
@@ -113,12 +140,17 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download per-browser results
         uses: actions/download-artifact@v4
         with:
           pattern: allure-results-*
           path: reports/allure-results
           merge-multiple: true
+
+      - name: Job summary
+        run: python .github/scripts/allure_summary.py reports/allure-results "Tests (all browsers)"
 
       - name: Upload merged results (baseline publishing)
         uses: actions/upload-artifact@v4
@@ -137,9 +169,22 @@ jobs:
           distribution: temurin
           java-version: "21"
 
+      # Trend graphs need the previous report's history/ folder; the first
+      # publish has no gh-pages branch yet, hence continue-on-error.
+      - name: Fetch previous report history
+        if: vars.PUBLISH_ALLURE_PAGES == 'true'
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
       - name: Generate Allure report
         if: vars.PUBLISH_ALLURE_PAGES == 'true'
         run: |
+          if [ -d gh-pages/history ]; then
+            cp -r gh-pages/history reports/allure-results/history
+          fi
           npm install -g allure-commandline
           allure generate reports/allure-results -o reports/allure-report --clean
 
