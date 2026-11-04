@@ -1,13 +1,14 @@
-"""Gemini-backed explanation of a Live Run's console output.
+"""Gemini-backed explanation of a test run's console output.
 
-Triggered on demand from the Live Run tab ("Analyze with Gemini") once a run
+Triggered on demand from the Live run page ("Analyze with Gemini") once a run
 has failures/errors — never called automatically. See
-``dashboard/components/test_runner_panel.py``.
+``dashboard/components/job_panel.py``.
 """
 
 from __future__ import annotations
 
 import os
+import re
 import time
 from pathlib import Path
 
@@ -18,8 +19,12 @@ from google.genai import errors, types
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 ENV_PATH = PROJECT_ROOT / ".env"
 
-MODEL = "gemini-3.5-flash"
-LOG_TAIL_CHARS = 8000  # matches the tail already shown in the Live Run log view
+DEFAULT_MODEL = "gemini-3.5-flash"
+#: Budget for the log excerpt sent to the model.
+LOG_EXCERPT_CHARS = 8000
+#: Of that budget, how much is reserved for the end of the run (summary line).
+_SUMMARY_TAIL_CHARS = 1500
+_FAILURE_BANNER_RE = re.compile(r"^=+ (FAILURES|ERRORS) =+$", re.MULTILINE)
 
 # Transient server-side codes worth a short retry (rate limit / momentary
 # overload) — not auth/bad-request codes, which will just fail again.
@@ -28,7 +33,7 @@ _MAX_ATTEMPTS = 3
 _RETRY_DELAY_S = 2.0
 
 _SYSTEM_INSTRUCTION = (
-    "You are looking at the tail of a pytest run's console output from a "
+    "You are looking at an excerpt of a pytest run's console output from a "
     "test-automation dashboard. It may contain Playwright UI/API test failures "
     "or Site Scanner results (broken links, browser console errors). Explain "
     "concisely what went wrong, point at the specific failing test or issue, "
@@ -50,13 +55,39 @@ def _current_api_key() -> str | None:
     return from_file or os.environ.get("GEMINI_API_KEY") or None
 
 
+def model_name() -> str:
+    """Model to use: ``GEMINI_MODEL`` (from .env or the environment), else the default."""
+    from_file = dotenv_values(ENV_PATH).get("GEMINI_MODEL") if ENV_PATH.is_file() else None
+    return from_file or os.environ.get("GEMINI_MODEL") or DEFAULT_MODEL
+
+
+def failure_excerpt(log_text: str, limit: int = LOG_EXCERPT_CHARS) -> str:
+    """The part of a pytest log that explains the failures.
+
+    A plain tail cuts the tracebacks off whenever the recap is long, so this
+    keeps pytest's FAILURES/ERRORS section (where the tracebacks are) plus the
+    final summary lines. Logs without such a section fall back to the tail.
+    """
+    if len(log_text) <= limit:
+        return log_text
+    banner = _FAILURE_BANNER_RE.search(log_text)
+    if banner is None:
+        return log_text[-limit:]
+    tail = log_text[-_SUMMARY_TAIL_CHARS:]
+    details_budget = limit - len(tail) - 10
+    details = log_text[banner.start() : len(log_text) - len(tail)]
+    if len(details) > details_budget:
+        details = details[:details_budget]
+    return "\n".join((details, "[…]", tail))
+
+
 def gemini_available() -> bool:
     """Whether GEMINI_API_KEY is configured — gates the Analyze button on/off."""
     return _current_api_key() is not None
 
 
 def analyze_log(log_text: str) -> str:
-    """Ask Gemini to explain the tail of a run's console output.
+    """Ask Gemini to explain a run's failures from its console output.
 
     Retries a couple of times on transient server errors (e.g. 503
     "model overloaded", common on the free tier) before giving up. Any other
@@ -70,8 +101,8 @@ def analyze_log(log_text: str) -> str:
     for attempt in range(1, _MAX_ATTEMPTS + 1):
         try:
             response = client.models.generate_content(
-                model=MODEL,
-                contents=log_text[-LOG_TAIL_CHARS:],
+                model=model_name(),
+                contents=failure_excerpt(log_text),
                 config=types.GenerateContentConfig(system_instruction=_SYSTEM_INSTRUCTION),
             )
             return response.text

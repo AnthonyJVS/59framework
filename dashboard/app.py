@@ -3,6 +3,9 @@
 Run with::
 
     streamlit run dashboard/app.py
+
+Entry point: page config, the shared run-setup sidebar and top navigation.
+Each page lives in ``dashboard/app_pages/`` as a plain script.
 """
 
 from __future__ import annotations
@@ -16,52 +19,34 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import streamlit as st  # noqa: E402 (path bootstrap must run first)
 
-from dashboard.components import (  # noqa: E402
-    history_panel,
-    perf_trigger_panel,
-    report_viewer,
-    scan_video_panel,
-    scanner_panel,
-    sidebar,
-    test_runner_panel,
-)
+from dashboard.components import sidebar  # noqa: E402
+from dashboard.state import job_manager  # noqa: E402
 
 st.set_page_config(
-    page_title="Test Automation Control Panel",
-    page_icon="🧪",
+    page_title="59framework",
+    page_icon=":material/science:",
     layout="wide",
 )
 
-state = sidebar.render()
+manager = job_manager()
 
-st.title("Test Automation Control Panel")
-
-live_tab, report_tab, perf_tab, scan_tab, video_tab, history_tab = st.tabs(
+live_page = st.Page(
+    "app_pages/live_run.py",
+    title="Live run",
+    icon=":material/progress_activity:" if manager.busy else ":material/terminal:",
+)
+page = st.navigation(
     [
-        "🔴 Live Run",
-        "📊 Allure Report",
-        "⚡ Performance Results",
-        "🔍 Scan Results",
-        "🎥 Scan Video",
-        "🕘 History",
-    ]
+        st.Page("app_pages/overview.py", title="Overview", icon=":material/space_dashboard:"),
+        live_page,
+        st.Page("app_pages/allure_report.py", title="Report", icon=":material/assessment:"),
+        st.Page("app_pages/performance.py", title="Performance", icon=":material/speed:"),
+        st.Page("app_pages/scanner.py", title="Site scanner", icon=":material/travel_explore:"),
+        st.Page("app_pages/history.py", title="History", icon=":material/history:"),
+    ],
+    position="top",
 )
 
-with live_tab:
-    perf_trigger_panel.handle_trigger(state.perf)
-    test_runner_panel.render(state)
-
-with report_tab:
-    report_viewer.render()
-
-with perf_tab:
-    perf_trigger_panel.render_results()
-
-with scan_tab:
-    scanner_panel.render()
-
-with video_tab:
-    scan_video_panel.render()
-
-with history_tab:
-    history_panel.render()
+sidebar.render(manager, live_page)
+st.title(page.title, icon=page.icon)
+page.run()

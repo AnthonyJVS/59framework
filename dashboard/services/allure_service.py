@@ -45,6 +45,7 @@ def generate_report() -> tuple[bool, str]:
         return False, "Allure commandline not found on PATH (npm i -g allure-commandline)"
     if not has_results():
         return False, f"No test results in {RESULTS_DIR} — run some tests first"
+    _carry_over_history()
     completed = subprocess.run(
         [executable, "generate", str(RESULTS_DIR), "-o", str(REPORT_DIR), "--clean"],
         capture_output=True,
@@ -54,6 +55,19 @@ def generate_report() -> tuple[bool, str]:
     if completed.returncode != 0:
         return False, completed.stderr.strip() or completed.stdout.strip()
     return True, f"Report generated at {REPORT_DIR}"
+
+
+def _carry_over_history() -> None:
+    """Copy the previous report's ``history/`` into the results before generating.
+
+    Allure builds its trend graphs and per-test history from that folder, but
+    every pytest run wipes ``allure-results`` (``--clean-alluredir``) and
+    ``generate --clean`` wipes the report — without this step each report
+    would only ever know about a single run.
+    """
+    previous = REPORT_DIR / "history"
+    if previous.is_dir():
+        shutil.copytree(previous, RESULTS_DIR / "history", dirs_exist_ok=True)
 
 
 def report_summary() -> dict[str, Any] | None:

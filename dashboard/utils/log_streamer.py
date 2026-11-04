@@ -31,8 +31,11 @@ class LogStreamer:
     ) -> None:
         self.command = command
         self.cwd = cwd
-        self.env = dict(env) if env is not None else None
+        # Unbuffered child output so lines reach the UI as they are printed,
+        # not in 4-8 KB blocks once the pipe buffer fills.
+        self.env = {**(env if env is not None else os.environ), "PYTHONUNBUFFERED": "1"}
         self._process: subprocess.Popen[str] | None = None
+        self.stop_requested = False
 
     def stream(self) -> Iterator[str]:
         """Start the process and yield stdout+stderr lines until it exits."""
@@ -47,6 +50,8 @@ class LogStreamer:
             errors="replace",
             bufsize=1,
         )
+        if self.stop_requested:  # terminate() raced the start of the process
+            self.terminate()
         assert self._process.stdout is not None
         finished = False
         try:
@@ -72,6 +77,7 @@ class LogStreamer:
         Windows the whole tree is taken down with ``taskkill /T``; elsewhere the
         parent gets SIGTERM, then SIGKILL after a grace period.
         """
+        self.stop_requested = True
         process = self._process
         if process is None or process.poll() is not None:
             return

@@ -8,3 +8,67 @@ address = "localhost"
 
 [browser]
 gatherUsageStats = false
+
+# --- Theme ------------------------------------------------------------------
+# "Instrument panel": neutral slate surfaces, one indigo accent for actions,
+# and the semantic palette reserved for test outcomes (green pass, red fail,
+# orange flaky/warning). Both variants are defined, so users can switch
+# light/dark from the app's settings menu.
+
+[theme]
+font = "Inter:https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+codeFont = "'JetBrains Mono':https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap"
+codeFontSize = "0.82rem"
+baseFontSize = 14
+headingFontSizes = ["28px", "21px", "17px", "15px", "14px", "12px"]
+headingFontWeights = [700, 600, 600, 600, 500, 500]
+baseRadius = "8px"
+buttonRadius = "8px"
+showWidgetBorder = true
+linkUnderline = false
+
+[theme.light]
+primaryColor = "#4F46E5"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F4F5F8"
+codeBackgroundColor = "#F4F5F8"
+textColor = "#1B1F2A"
+linkColor = "#4338CA"
+borderColor = "#DDE1E8"
+dataframeHeaderBackgroundColor = "#F4F5F8"
+greenColor = "#15803D"
+redColor = "#DC2626"
+orangeColor = "#C2410C"
+yellowColor = "#A16207"
+blueColor = "#4F46E5"
+violetColor = "#7C3AED"
+grayColor = "#64748B"
+chartCategoricalColors = ["#4F46E5", "#16A34A", "#DC2626", "#EA580C", "#0891B2", "#7C3AED", "#64748B"]
+
+[theme.light.sidebar]
+backgroundColor = "#F7F8FA"
+secondaryBackgroundColor = "#EDEFF4"
+borderColor = "#DDE1E8"
+
+[theme.dark]
+primaryColor = "#6366F1"
+backgroundColor = "#0F1117"
+secondaryBackgroundColor = "#1A1D27"
+codeBackgroundColor = "#151821"
+textColor = "#E6E8EE"
+linkColor = "#A5B4FC"
+borderColor = "#2A2F3C"
+dataframeHeaderBackgroundColor = "#1A1D27"
+greenColor = "#22C55E"
+redColor = "#F87171"
+orangeColor = "#FB923C"
+yellowColor = "#FACC15"
+blueColor = "#818CF8"
+violetColor = "#A78BFA"
+grayColor = "#94A3B8"
+chartCategoricalColors = ["#818CF8", "#4ADE80", "#F87171", "#FB923C", "#22D3EE", "#A78BFA", "#94A3B8"]
+
+[theme.dark.sidebar]
+backgroundColor = "#0B0D12"
+secondaryBackgroundColor = "#161922"
+borderColor = "#22262F"

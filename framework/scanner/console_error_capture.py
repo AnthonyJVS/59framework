@@ -6,8 +6,11 @@ independent of Page Objects and app-specific selectors.
 
 from __future__ import annotations
 
+import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal, Self
+from urllib.parse import urlparse
 
 from playwright.sync_api import ConsoleMessage, Error, Page
 
@@ -21,14 +24,29 @@ class ConsoleIssue:
     kind: IssueKind
     page_url: str
     text: str
+    #: Script/resource that emitted the message, when the browser reports one.
+    source_url: str = ""
+
+    @property
+    def third_party(self) -> bool:
+        """Emitted by a script from another origin than the page (ads, widgets…)."""
+        if not self.source_url:
+            return False
+        return urlparse(self.source_url).netloc != urlparse(self.page_url).netloc
 
 
 class ConsoleErrorCapture:
-    """Records error-severity console messages and uncaught JS exceptions."""
+    """Records error-severity console messages and uncaught JS exceptions.
 
-    def __init__(self, page: Page) -> None:
+    ``ignore`` takes regular expressions; a message matching any of them (for
+    example known third-party noise) is not recorded.
+    """
+
+    def __init__(self, page: Page, ignore: Iterable[str] = ()) -> None:
         self._page = page
+        self._ignore = [re.compile(pattern) for pattern in ignore]
         self.issues: list[ConsoleIssue] = []
+        self.ignored_count = 0
 
     def attach(self) -> Self:
         """Start listening; safe to call once per page."""
@@ -45,9 +63,18 @@ class ConsoleErrorCapture:
         """Issues captured while the given URL was open."""
         return [issue for issue in self.issues if issue.page_url == page_url]
 
+    def _record(self, issue: ConsoleIssue) -> None:
+        if any(pattern.search(issue.text) for pattern in self._ignore):
+            self.ignored_count += 1
+            return
+        self.issues.append(issue)
+
     def _on_console(self, message: ConsoleMessage) -> None:
         if message.type == "error":
-            self.issues.append(ConsoleIssue("console-error", self._page.url, message.text))
+            location = message.location or {}
+            self._record(
+                ConsoleIssue("console-error", self._page.url, message.text, location.get("url", ""))
+            )
 
     def _on_page_error(self, error: Error) -> None:
-        self.issues.append(ConsoleIssue("page-error", self._page.url, str(error)))
+        self._record(ConsoleIssue("page-error", self._page.url, str(error)))

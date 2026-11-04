@@ -38,6 +38,8 @@ class ScanArtifacts:
     report: CrawlReport
     console_issues: list[ConsoleIssue]
     timing: NavigationTiming
+    load_budget_ms: int = 10_000
+    ignored_console_count: int = 0
 
 
 @pytest.fixture(scope="session")
@@ -75,15 +77,24 @@ def scan_artifacts(
         )
         page = context.new_page()
         video = page.video if record_video else None
-        capture = ConsoleErrorCapture(page).attach()
+        capture = ConsoleErrorCapture(
+            page, ignore=request.config.getoption("--scan-ignore-console")
+        ).attach()
         crawler = LinkCrawler(
             page,
             max_depth=request.config.getoption("--scan-depth"),
             max_pages=request.config.getoption("--scan-max-pages"),
+            check_external=request.config.getoption("--scan-external"),
         )
         report = crawler.crawl(scan_target_url)
         capture.detach()
-        artifacts = ScanArtifacts(report=report, console_issues=list(capture.issues), timing=timing)
+        artifacts = ScanArtifacts(
+            report=report,
+            console_issues=list(capture.issues),
+            timing=timing,
+            load_budget_ms=request.config.getoption("--scan-load-budget-ms"),
+            ignored_console_count=capture.ignored_count,
+        )
         _export_scan_results(artifacts)
         yield artifacts
     finally:
@@ -123,8 +134,13 @@ def _export_scan_results(artifacts: ScanArtifacts) -> None:
         "max_depth": artifacts.report.max_depth,
         "visited_pages": artifacts.report.visited_pages,
         "results": [asdict(result) for result in artifacts.report.results],
-        "console_issues": [asdict(issue) for issue in artifacts.console_issues],
+        "console_issues": [
+            {**asdict(issue), "third_party": issue.third_party}
+            for issue in artifacts.console_issues
+        ],
+        "ignored_console_count": artifacts.ignored_console_count,
         "timing": asdict(artifacts.timing),
+        "load_budget_ms": artifacts.load_budget_ms,
     }
     SCAN_RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     SCAN_RESULTS_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")

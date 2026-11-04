@@ -41,7 +41,6 @@ and a generic Site Scanner that works against *any* URL.
   <td>
     <img src="https://img.shields.io/badge/Allure-FF6C37?style=flat-square&logo=qameta&logoColor=white" alt="Allure">
     <img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white" alt="Streamlit">
-    <img src="https://img.shields.io/badge/Plotly-3F4F75?style=flat-square&logo=plotly&logoColor=white" alt="Plotly">
     <img src="https://img.shields.io/badge/pandas-150458?style=flat-square&logo=pandas&logoColor=white" alt="pandas">
   </td>
 </tr>
@@ -76,7 +75,7 @@ and a generic Site Scanner that works against *any* URL.
 | **UI tests** | Strict Page Object Model, zero selectors in tests, cross-browser matrix (Chromium / Firefox / WebKit). |
 | **API tests** | Playwright `APIRequestContext` + JSON Schema contract validation. |
 | **Site Scanner** | Selector-agnostic crawl: broken links, JS console errors, page load budget — no Page Objects needed. |
-| **Dashboard** | Streamlit control panel: launch runs, stream logs live, browse reports, review history. |
+| **Dashboard** | Streamlit control panel: background runs with live progress and stop, reports, trends, history. |
 | **Reporting** | Allure with a screenshot + Playwright trace attached to every failure. |
 | **Performance** | k6 load scripts with thresholds, trend charts across runs. |
 | **AI analysis** | One-click Gemini explanation of a failed run's log. |
@@ -132,14 +131,25 @@ One fixture layer, three priorities:
 ## Site Scanner (Mode B)
 
 ```bash
-pytest tests/scanner --base-url=https://any.site --scan-depth=1 --scan-max-pages=15
+pytest tests/scanner --base-url=https://any.site --scan-depth=2 --scan-max-pages=15
 ```
 
-Breadth-first same-origin crawl that flags non-2xx/3xx links, captures
-error-severity console output and uncaught JS exceptions, and checks the start
-page's load time against `--scan-load-budget-ms` (default 10 s). Optional
-`--scan-record-video` saves a `.webm` of the crawl for the dashboard. Without a
-target URL the scanner tests simply skip. Results land in
+Measures the start page's load time first, in a fresh browser context (cold
+cache), against `--scan-load-budget-ms` (default 10 s). Then crawls the site
+breadth-first: same-origin pages up to depth − 1 are opened in the browser
+(capturing error-level console output and uncaught JS exceptions), and every
+link at the last level is status-checked concurrently over HTTP. Non-2xx/3xx
+links are reported as broken.
+
+| Option | Effect |
+|---|---|
+| `--scan-depth=N` | Link levels followed from the start page (default 1). |
+| `--scan-max-pages=N` | Cap on pages opened in the browser (default 15). |
+| `--scan-external` | Also status-check links to other sites (never crawled). |
+| `--scan-ignore-console=REGEX` | Ignore console errors matching REGEX; repeatable. |
+| `--scan-record-video` | Save a `.webm` of the crawl for the dashboard. |
+
+Without a target URL the scanner tests simply skip. Results land in
 `reports/scan_results.json`.
 
 ## Dashboard
@@ -148,18 +158,29 @@ target URL the scanner tests simply skip. Results land in
 streamlit run dashboard/app.py
 ```
 
-- **Sidebar** — target URL (auto-routes: known URL → Mode A, unknown → Site Scanner),
-  environment, test types, browsers, serial/parallel, k6 settings (VUs / duration).
-- **Live Run** — the exact pytest command, streamed output, live pass/fail counters,
-  and **Analyze with Gemini** for a plain-language explanation of a failure.
-- **Allure Report** — embedded latest report + full-screen link.
-- **Performance** — k6 metrics, latency distribution, trend across runs.
-- **Scan Results / Scan Video** — broken links, console errors, load timing, and the
-  recorded crawl (Mode B).
-- **History** — persisted table of past runs.
+Runs and load tests execute **in the background**: you can switch pages,
+refresh the browser or keep configuring while one runs, and stop it at any time.
+One run at a time, so concurrent runs never overwrite each other's reports.
 
-> The Gemini button stays disabled until `GEMINI_API_KEY` is set in `.env`
-> ([free key](https://aistudio.google.com/apikey)).
+- **Sidebar** — run setup: target URL (a known URL → Mode A, any other → Site
+  Scanner), environment, suites, browsers, serial/parallel, retries, scanner
+  options, and the k6 script/VUs/duration (defaults from `perf_config.yaml`).
+- **Overview** — latest run with pass-rate and duration trends, green streak,
+  latest load test and scan, and which tools (Allure, k6, Gemini) are set up.
+- **Live run** — the exact command, a progress bar, live counters and log,
+  **Stop**, **Download log**, **Re-run failed tests**, and **Analyze with Gemini**.
+- **Report** — the embedded Allure report (with trend history across runs).
+- **Performance** — k6 latency/throughput/error rate with deltas to the previous
+  comparable run (same target and script) and a trend chart.
+- **Site scanner** — broken links, console errors (third-party ones can be
+  hidden), all checked links, load time against budget, and the crawl recording.
+- **History** — every run with filters, pass-rate and duration charts.
+
+The theme (light and dark) lives in `.streamlit/config.toml`; the dashboard
+listens on `localhost` only unless started with `--server.address`.
+
+> **Analyze with Gemini** needs `GEMINI_API_KEY` in `.env`
+> ([free key](https://aistudio.google.com/apikey)); `GEMINI_MODEL` overrides the model.
 
 ## Reporting
 
@@ -199,7 +220,12 @@ runs share one environment.
   artifact. `workflow_dispatch` offers suite (smoke/regression/all), environment and
   an optional k6 job. Optional GitHub Pages publishing (repo variable
   `PUBLISH_ALLURE_PAGES=true`).
-- **`nightly-regression.yml`** — full suite × 3 browsers + k6 smoke, nightly at 02:00 UTC.
+- **`nightly-regression.yml`** — full suite × 3 browsers + k6 smoke, nightly at 02:00 UTC;
+  merged results and an HTML Allure report are uploaded as artifacts.
+
+Every job writes a pass/fail table (with failing tests and messages) to its GitHub
+job summary via `.github/scripts/allure_summary.py`; a `lint-unit` job runs ruff,
+black and the unit tests. Published Pages reports keep Allure trend history.
 
 ## Layout
 
@@ -215,7 +241,8 @@ tests/
   ui/  api/        smoke + regression suites (Mode A)
   scanner/         generic site scan (Mode B, self-contained fixtures)
   performance/     pytest-triggered k6 smoke
-dashboard/         Streamlit app: components + services (executor, allure, k6, gemini)
+dashboard/         Streamlit app: app.py (entry), app_pages/, components/,
+                   services/ (job manager, executor, allure, k6, gemini, history)
 performance/       k6 scripts + perf_config.yaml
 docker/            Dockerfile.playwright + docker-compose.yml
 .github/workflows/ ci-tests.yml, nightly-regression.yml

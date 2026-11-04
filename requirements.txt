@@ -15,7 +15,6 @@ allure-pytest~=2.15
 # --- Dashboard ---
 streamlit~=1.66  # needed for width="stretch" (use_container_width is deprecated)
 pandas~=2.3
-plotly~=6.3
 
 # --- AI-assisted log analysis ---
 google-genai~=2.14
