@@ -1,259 +1,353 @@
 <div align="center">
 
-# 59framework
+# 🧪 59framework
 
-**Production-ready test automation framework** — Playwright + pytest for UI & API,
-a Streamlit control panel, Allure reporting, k6 performance tests
-and a generic Site Scanner that works against *any* URL.
+**Test automation framework and control panel in one repo.**<br>
+Playwright + pytest for UI and API suites, a Site Scanner that audits *any* URL,
+k6 load tests, Allure reports — all driven from a Streamlit dashboard.
 
+[![CI](https://img.shields.io/github/actions/workflow/status/AnthonyJVS/59framework/ci-tests.yml?branch=main&style=for-the-badge&label=CI&logo=githubactions&logoColor=white)](https://github.com/AnthonyJVS/59framework/actions/workflows/ci-tests.yml)
+[![Nightly](https://img.shields.io/github/actions/workflow/status/AnthonyJVS/59framework/nightly-regression.yml?style=for-the-badge&label=nightly&logo=githubactions&logoColor=white)](https://github.com/AnthonyJVS/59framework/actions/workflows/nightly-regression.yml)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
-[![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev)
-[![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)](https://pytest.org)
-[![CI](https://img.shields.io/github/actions/workflow/status/AnthonyJVS/59framework/ci-tests.yml?branch=main&style=for-the-badge&label=CI&logo=githubactions&logoColor=white)](../../actions/workflows/ci-tests.yml)
+[![Playwright](https://img.shields.io/badge/Playwright-1.64-2EAD33?style=for-the-badge&logo=playwright&logoColor=white)](https://playwright.dev/python/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.66-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![Code style](https://img.shields.io/badge/code_style-ruff_+_black-000000?style=for-the-badge&logo=ruff&logoColor=white)](https://docs.astral.sh/ruff/)
+
+[Quick start](#-quick-start) ·
+[Dashboard](#-dashboard) ·
+[Two testing modes](#-two-testing-modes) ·
+[Site Scanner](#-site-scanner) ·
+[Architecture](#-architecture) ·
+[CI/CD](#-cicd)
+
+<br>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/overview-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/overview-light.png">
+  <img alt="The dashboard's Overview page: latest test run with pass rate and duration trend, latest site scan, tooling status" src="docs/images/overview-dark.png" width="900">
+</picture>
 
 </div>
 
----
-
-## Tech stack
+## ✨ Highlights
 
 <table>
 <tr>
-  <td><b>Core</b></td>
-  <td>
-    <img src="https://img.shields.io/badge/Python_3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
-    <img src="https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white" alt="Playwright">
-    <img src="https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white" alt="pytest">
-    <img src="https://img.shields.io/badge/xdist_·_rerunfailures-0A9EDC?style=flat-square" alt="pytest plugins">
-  </td>
+<td width="50%" valign="top">
+
+**🎭 UI & API suites**<br>
+Strict Page Object Model (zero selectors in tests), Chromium / Firefox / WebKit
+matrix, API contracts validated against JSON Schema.
+
+</td>
+<td width="50%" valign="top">
+
+**🔎 Site Scanner for any URL**<br>
+Paste a URL, get broken links, JS console errors and a cold page-load timing —
+no Page Objects, no configuration.
+
+</td>
 </tr>
 <tr>
-  <td><b>API&nbsp;&&nbsp;Data</b></td>
-  <td>
-    <img src="https://img.shields.io/badge/APIRequestContext-2EAD33?style=flat-square&logo=playwright&logoColor=white" alt="APIRequestContext">
-    <img src="https://img.shields.io/badge/JSON_Schema-000000?style=flat-square&logo=json&logoColor=white" alt="JSON Schema">
-    <img src="https://img.shields.io/badge/Faker-4B8BBE?style=flat-square" alt="Faker">
-    <img src="https://img.shields.io/badge/YAML_+_dotenv-CB171E?style=flat-square&logo=yaml&logoColor=white" alt="YAML + dotenv">
-  </td>
+<td valign="top">
+
+**🖥️ Control panel**<br>
+Start runs from the browser, watch them live, stop them, re-run only what
+failed. Runs keep going while you browse the other pages.
+
+</td>
+<td valign="top">
+
+**📊 Reports & trends**<br>
+Allure with a screenshot and Playwright trace on every failure, trend history
+across runs, pass-rate and duration charts.
+
+</td>
 </tr>
 <tr>
-  <td><b>Reporting</b></td>
-  <td>
-    <img src="https://img.shields.io/badge/Allure-FF6C37?style=flat-square&logo=qameta&logoColor=white" alt="Allure">
-    <img src="https://img.shields.io/badge/Streamlit-FF4B4B?style=flat-square&logo=streamlit&logoColor=white" alt="Streamlit">
-    <img src="https://img.shields.io/badge/pandas-150458?style=flat-square&logo=pandas&logoColor=white" alt="pandas">
-  </td>
-</tr>
-<tr>
-  <td><b>Performance</b></td>
-  <td>
-    <img src="https://img.shields.io/badge/k6-7D64FF?style=flat-square&logo=k6&logoColor=white" alt="k6">
-    <img src="https://img.shields.io/badge/Navigation_Timing_API-5A5A5A?style=flat-square" alt="Navigation Timing API">
-  </td>
-</tr>
-<tr>
-  <td><b>AI</b></td>
-  <td>
-    <img src="https://img.shields.io/badge/Google_Gemini-8E75B2?style=flat-square&logo=googlegemini&logoColor=white" alt="Google Gemini">
-  </td>
-</tr>
-<tr>
-  <td><b>CI&nbsp;&&nbsp;Infra</b></td>
-  <td>
-    <img src="https://img.shields.io/badge/GitHub_Actions-2088FF?style=flat-square&logo=githubactions&logoColor=white" alt="GitHub Actions">
-    <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker">
-    <img src="https://img.shields.io/badge/Ruff_+_Black-000000?style=flat-square&logo=ruff&logoColor=white" alt="Ruff + Black">
-  </td>
+<td valign="top">
+
+**⚡ Load testing**<br>
+k6 scripts with thresholds; latency, throughput and error rate compared with the
+previous comparable run.
+
+</td>
+<td valign="top">
+
+**🤖 AI failure analysis**<br>
+One click sends the failure section of a log to Gemini for a plain-language
+explanation and a next step.
+
+</td>
 </tr>
 </table>
 
-## Features
+Demo targets are [SauceDemo](https://www.saucedemo.com) (UI) and
+[JSONPlaceholder](https://jsonplaceholder.typicode.com) (API); pointing the suites
+at a real application is a matter of configuration.
 
-| | |
-|---|---|
-| **Two testing modes** | Mode A — fixed suites against a configured environment. Mode B — Site Scanner against any arbitrary URL. Both coexist in one run. |
-| **UI tests** | Strict Page Object Model, zero selectors in tests, cross-browser matrix (Chromium / Firefox / WebKit). |
-| **API tests** | Playwright `APIRequestContext` + JSON Schema contract validation. |
-| **Site Scanner** | Selector-agnostic crawl: broken links, JS console errors, page load budget — no Page Objects needed. |
-| **Dashboard** | Streamlit control panel: background runs with live progress and stop, reports, trends, history. |
-| **Reporting** | Allure with a screenshot + Playwright trace attached to every failure. |
-| **Performance** | k6 load scripts with thresholds, trend charts across runs. |
-| **AI analysis** | One-click Gemini explanation of a failed run's log. |
-| **CI/CD** | GitHub Actions: per-push smoke matrix, nightly full regression, merged Allure artifact. |
-| **Docker** | One image with browsers + k6, so local and CI runs are identical. |
+## 🚀 Quick start
 
-Demo targets: [SauceDemo](https://www.saucedemo.com) (UI) and
-[JSONPlaceholder](https://jsonplaceholder.typicode.com) (API) — swappable for a
-real application via config only.
+**Prerequisites:** Python 3.11+. Optional: Node.js + Java 8+ for Allure,
+[k6](https://k6.io/docs/get-started/installation/) for load tests, Docker.
 
-## Quick start
-
-Prerequisites: Python 3.11+, Node.js (Allure CLI), Java 8+ (Allure), optionally
-[k6](https://k6.io) and Docker.
+**1. Install**
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate                # Windows (POSIX: source .venv/bin/activate)
+.venv\Scripts\activate                      # macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 playwright install chromium firefox webkit
-npm install -g allure-commandline     # report rendering
-copy .env.example .env                # then adjust as needed
+npm install -g allure-commandline           # optional: Allure reports
 ```
 
-> On machines with an Application Control policy that blocks compiled wheels,
-> install black as pure Python: `pip install --force-reinstall --no-binary black black`.
+**2. Configure** — copy `.env.example` to `.env`; the defaults work for the demo apps.
 
-## Running tests
+**3. Run**
 
 ```bash
-pytest -m smoke                        # fast critical-path suite
-pytest -m "regression or api"          # full functional coverage
-pytest -m smoke --browser=firefox      # one alternate engine
-pytest --browser chromium --browser firefox --browser webkit   # 3-browser matrix
-pytest -n auto                         # parallel (pytest-xdist)
-pytest -m regression -n 4 --reruns 1   # parallel + flaky retry
-pytest -m performance                  # k6 smoke (skips without k6)
-pytest -m unit                         # framework/dashboard logic, no browser or network
+pytest -m smoke                             # run the smoke suite from the terminal
+streamlit run dashboard/app.py              # or drive everything from the dashboard
 ```
 
-Markers: `smoke`, `regression`, `api`, `ui`, `scanner`, `cross_browser`, `performance`, `unit`.
+The dashboard opens at <http://localhost:8501>.
 
-## URL resolution
+## 🖥️ Dashboard
 
-One fixture layer, three priorities:
+Pick a target, suites and browsers in the sidebar, then press **Run tests**. The
+run executes in the background: switch pages, refresh the browser or keep
+configuring, and stop it whenever you like. Only one run executes at a time, so
+reports are never overwritten mid-run.
 
-1. **Explicit override (Mode B)** — `--base-url=…` / `TARGET_URL`
-   (`--api-base-url` / `API_TARGET_URL` for the API).
-2. **Environment config (Mode A)** — `--env=dev|staging|prod` / `ENV`, resolved via
-   `config/environments/<env>.yaml` with `${VAR:default}` interpolation from `.env`.
-3. **Default** — `dev`.
+<table>
+<tr>
+<td width="50%"><img src="docs/images/live-run.png" alt="Live run page: running test run with progress bar, pass/fail counters, streamed pytest output and a Stop button"></td>
+<td width="50%"><img src="docs/images/site-scanner.png" alt="Site scanner page: links checked, broken links, console errors and page load within budget, with a table of captured console errors"></td>
+</tr>
+<tr>
+<td align="center"><b>Live run</b> — progress, counters, streamed log, Stop</td>
+<td align="center"><b>Site scanner</b> — links, console errors, load budget</td>
+</tr>
+<tr>
+<td colspan="2"><img src="docs/images/history.png" alt="History page: run count, green-run rate, median duration, pass rate and duration charts, table of past runs"></td>
+</tr>
+<tr>
+<td colspan="2" align="center"><b>History</b> — every run with filters, pass-rate and duration trends</td>
+</tr>
+</table>
 
-## Site Scanner (Mode B)
-
-```bash
-pytest tests/scanner --base-url=https://any.site --scan-depth=2 --scan-max-pages=15
-```
-
-Measures the start page's load time first, in a fresh browser context (cold
-cache), against `--scan-load-budget-ms` (default 10 s). Then crawls the site
-breadth-first: same-origin pages up to depth − 1 are opened in the browser
-(capturing error-level console output and uncaught JS exceptions), and every
-link at the last level is status-checked concurrently over HTTP. Non-2xx/3xx
-links are reported as broken.
-
-| Option | Effect |
+| Page | What it shows |
 |---|---|
-| `--scan-depth=N` | Link levels followed from the start page (default 1). |
-| `--scan-max-pages=N` | Cap on pages opened in the browser (default 15). |
-| `--scan-external` | Also status-check links to other sites (never crawled). |
-| `--scan-ignore-console=REGEX` | Ignore console errors matching REGEX; repeatable. |
-| `--scan-record-video` | Save a `.webm` of the crawl for the dashboard. |
+| **Overview** | Latest run (pass rate, failures, duration trend, green streak), latest load test and scan, tooling status |
+| **Live run** | Exact command, progress bar, live counters and log · **Stop** · **Download log** · **Re-run failed tests** · **Analyze with Gemini** |
+| **Report** | The latest Allure report embedded, with headline numbers |
+| **Performance** | k6 p95 / throughput / error rate with deltas against the previous run of the same script and target, distribution and trend charts |
+| **Site scanner** | Broken links, console errors (third-party ones can be hidden), every checked link, load time against budget, crawl recording |
+| **History** | All runs with mode/target filters, pass-rate and duration charts |
 
-Without a target URL the scanner tests simply skip. Results land in
-`reports/scan_results.json`.
+Light and dark themes are defined in [`.streamlit/config.toml`](.streamlit/config.toml).
+The dashboard listens on `localhost` only, because it starts processes on your
+machine; pass `--server.address 0.0.0.0` to expose it deliberately.
 
-## Dashboard
+> [!TIP]
+> **Analyze with Gemini** turns on once `GEMINI_API_KEY` is set in `.env`
+> ([get a free key](https://aistudio.google.com/apikey)). `GEMINI_MODEL` picks the model.
+
+## 🧭 Two testing modes
+
+The same fixture layer resolves where tests point, so both modes coexist in one run:
+
+```mermaid
+flowchart LR
+    A[pytest / dashboard] --> B{Explicit URL?<br>--base-url · TARGET_URL}
+    B -- "yes, unknown site" --> M2[Mode B<br>Site Scanner]
+    B -- "matches an environment" --> M1
+    B -- no --> C{Environment?<br>--env · ENV}
+    C -- "dev / staging / prod" --> M1[Mode A<br>UI + API suites]
+    C -- "not set" --> D[dev] --> M1
+```
+
+- **Mode A — fixed suites.** `config/environments/<env>.yaml` provides the base URLs,
+  credentials and timeouts, with `${VAR:default}` placeholders filled from `.env`.
+- **Mode B — Site Scanner.** Any URL that is not a configured environment. Scanner
+  tests skip themselves when no target URL is given.
+
+## 🧪 Running tests
+
+| Command | What runs |
+|---|---|
+| `pytest -m smoke` | Fast critical-path checks |
+| `pytest -m "regression or api"` | Full functional coverage |
+| `pytest -m smoke --browser firefox` | One alternate engine |
+| `pytest --browser chromium --browser firefox --browser webkit` | 3-browser matrix |
+| `pytest -n auto` | Parallel (pytest-xdist) |
+| `pytest -m regression -n 4 --reruns 1` | Parallel with one retry for flaky tests |
+| `pytest --env staging` | Against another environment |
+| `pytest -m performance` | k6 smoke (skips without k6) |
+| `pytest -m unit` | Framework and dashboard logic — no browser, no network |
+
+Markers: `smoke` · `regression` · `api` · `ui` · `scanner` · `cross_browser` · `performance` · `unit`
+
+<details>
+<summary><b>Writing a UI test</b></summary>
+
+Tests talk to Page Objects only; every page transition waits until the next page
+has rendered, so reads right after a click are safe.
+
+```python
+@pytest.mark.cross_browser
+def test_standard_user_can_login(login_page: LoginPage, credentials: Mapping[str, str]) -> None:
+    inventory = login_page.login(credentials["username"], credentials["password"])
+    assert inventory.is_current(), "Login did not land on the inventory page"
+    expect(inventory.items.first).to_be_visible()
+```
+
+Selectors live in [`framework/pages/`](framework/pages); fixtures such as `login_page`
+and `credentials` come from [`tests/ui/conftest.py`](tests/ui/conftest.py).
+
+</details>
+
+## 🔎 Site Scanner
 
 ```bash
-streamlit run dashboard/app.py
+pytest tests/scanner --base-url=https://example.com --scan-depth=2
 ```
 
-Runs and load tests execute **in the background**: you can switch pages,
-refresh the browser or keep configuring while one runs, and stop it at any time.
-One run at a time, so concurrent runs never overwrite each other's reports.
+1. **Measures** the start page cold, in a fresh browser context, against a load budget.
+2. **Crawls** same-origin pages breadth-first in the browser, recording
+   `console.error` output and uncaught exceptions.
+3. **Checks** every link at the last level concurrently over HTTP; anything that is not
+   2xx/3xx is reported as broken.
 
-- **Sidebar** — run setup: target URL (a known URL → Mode A, any other → Site
-  Scanner), environment, suites, browsers, serial/parallel, retries, scanner
-  options, and the k6 script/VUs/duration (defaults from `perf_config.yaml`).
-- **Overview** — latest run with pass-rate and duration trends, green streak,
-  latest load test and scan, and which tools (Allure, k6, Gemini) are set up.
-- **Live run** — the exact command, a progress bar, live counters and log,
-  **Stop**, **Download log**, **Re-run failed tests**, and **Analyze with Gemini**.
-- **Report** — the embedded Allure report (with trend history across runs).
-- **Performance** — k6 latency/throughput/error rate with deltas to the previous
-  comparable run (same target and script) and a trend chart.
-- **Site scanner** — broken links, console errors (third-party ones can be
-  hidden), all checked links, load time against budget, and the crawl recording.
-- **History** — every run with filters, pass-rate and duration charts.
+| Option | Default | Effect |
+|---|---|---|
+| `--scan-depth=N` | `1` | Link levels followed from the start page |
+| `--scan-max-pages=N` | `15` | Cap on pages opened in the browser |
+| `--scan-load-budget-ms=N` | `10000` | Start-page load budget |
+| `--scan-external` | off | Also status-check links to other sites (never crawled) |
+| `--scan-ignore-console=REGEX` | — | Ignore matching console errors; repeatable |
+| `--scan-record-video` | off | Save a `.webm` of the crawl for the dashboard |
 
-The theme (light and dark) lives in `.streamlit/config.toml`; the dashboard
-listens on `localhost` only unless started with `--server.address`.
+Results are written to `reports/scan_results.json` and shown on the **Site scanner** page.
 
-> **Analyze with Gemini** needs `GEMINI_API_KEY` in `.env`
-> ([free key](https://aistudio.google.com/apikey)); `GEMINI_MODEL` overrides the model.
+## 🏗️ Architecture
 
-## Reporting
-
-Every run writes `reports/allure-results` (latest-run semantics). Failures attach a
-full-page screenshot and a Playwright trace zip (`reports/traces/`, inspectable via
-`playwright show-trace`).
-
-```bash
-allure serve reports/allure-results    # one-shot local view
-allure generate reports/allure-results -o reports/allure-report --clean
+```mermaid
+flowchart LR
+    U([You]) --> D[Streamlit dashboard<br>sidebar + 6 pages]
+    D -- "start / stop" --> J[JobManager<br>background thread<br>one run at a time]
+    J -- subprocess --> P[pytest]
+    J -- subprocess --> K[k6]
+    P --> F[framework/<br>Page Objects · API client<br>Site Scanner]
+    F --> T[(App under test<br>or any URL)]
+    K --> T
+    P --> R[(reports/<br>Allure · traces · scans<br>run history)]
+    K --> R
+    R -- "charts, tables, report" --> D
+    J -. "live log & counters" .-> D
 ```
 
-## Performance (k6)
+<details>
+<summary><b>Project layout</b></summary>
 
-Env-driven scripts in `performance/k6-scripts/` (`homepage_load.js`,
-`checkout_flow.js`); defaults and thresholds in `performance/perf_config.yaml`.
-Triggered from the dashboard or `pytest -m performance` — both go through
-`dashboard/services/k6_service.py`, which parses k6's JSON summary into
-`reports/k6_summary.json` plus a bounded history for trend charts.
-
-## Docker
-
-```bash
-docker compose -f docker/docker-compose.yml run --rm tests                  # smoke
-docker compose -f docker/docker-compose.yml run --rm tests \
-    python -m pytest -m regression -n auto
-docker compose -f docker/docker-compose.yml up dashboard                    # :8501
-```
-
-`docker/Dockerfile.playwright` bundles Playwright browsers + k6, so local and CI
-runs share one environment.
-
-## CI/CD
-
-- **`ci-tests.yml`** — on push/PR to `main`/`develop`: smoke suite across a 3-browser
-  matrix with retries; per-browser Allure results uploaded and merged into one
-  artifact. `workflow_dispatch` offers suite (smoke/regression/all), environment and
-  an optional k6 job. Optional GitHub Pages publishing (repo variable
-  `PUBLISH_ALLURE_PAGES=true`).
-- **`nightly-regression.yml`** — full suite × 3 browsers + k6 smoke, nightly at 02:00 UTC;
-  merged results and an HTML Allure report are uploaded as artifacts.
-
-Every job writes a pass/fail table (with failing tests and messages) to its GitHub
-job summary via `.github/scripts/allure_summary.py`; a `lint-unit` job runs ruff,
-black and the unit tests. Published Pages reports keep Allure trend history.
-
-## Layout
-
-```
-config/            environment YAMLs + ${VAR} interpolating loader
+```text
+config/              environment YAMLs + ${VAR} interpolating loader
 framework/
-  core/            BasePage, DriverFactory
-  pages/           Page Objects (strict POM)
-  api/             BaseApiClient, endpoint layer, JSON schemas
-  scanner/         link crawler, console error capture, perf probe
-  utils/           assertions (schema validation), Faker data, logger
+  core/              BasePage (page-transition waits), DriverFactory
+  pages/             Page Objects — the only place with selectors
+  api/               BaseApiClient, endpoint layer, JSON schemas
+  scanner/           link crawler, console error capture, perf probe
+  utils/             schema assertions, Faker data, logger
 tests/
-  ui/  api/        smoke + regression suites (Mode A)
-  scanner/         generic site scan (Mode B, self-contained fixtures)
-  performance/     pytest-triggered k6 smoke
-dashboard/         Streamlit app: app.py (entry), app_pages/, components/,
-                   services/ (job manager, executor, allure, k6, gemini, history)
-performance/       k6 scripts + perf_config.yaml
-docker/            Dockerfile.playwright + docker-compose.yml
-.github/workflows/ ci-tests.yml, nightly-regression.yml
-reports/           allure-results/report, traces, JSON artifacts (gitignored)
+  ui/  api/          smoke + regression suites (Mode A)
+  scanner/           generic site scan (Mode B, self-contained fixtures)
+  performance/       pytest-triggered k6 smoke
+  unit/              framework + dashboard logic, AppTest page renders
+dashboard/
+  app.py             entry point: page config, sidebar, navigation
+  app_pages/         one script per page
+  components/        sidebar, live job panel, shared UI helpers
+  services/          job manager, pytest executor, Allure, k6, Gemini, history
+performance/         k6 scripts + perf_config.yaml
+docker/              Dockerfile.playwright + docker-compose.yml
+.github/             workflows + job-summary script
+docs/images/         README screenshots
+reports/             generated output (gitignored)
 ```
 
-## Coding standards
+</details>
 
-Strict Page Object Model (no selectors in tests), config only via
-`config_loader.py` / fixtures, type hints and docstrings throughout, `ruff` + `black`:
+## 📊 Reporting
+
+Every run writes `reports/allure-results`. Failures attach a full-page screenshot and
+a Playwright trace (`reports/traces/`, open with `playwright show-trace <zip>`).
 
 ```bash
-ruff check . && black .
+allure serve reports/allure-results
 ```
+
+The dashboard regenerates the report after each run and carries the previous
+report's history forward, so Allure's trend graphs span runs.
+
+## ⚡ Performance (k6)
+
+Scripts in [`performance/k6-scripts/`](performance/k6-scripts) are configured entirely
+through environment variables. Defaults, thresholds and the script list live in
+[`performance/perf_config.yaml`](performance/perf_config.yaml).
+
+| Script | Scenario |
+|---|---|
+| `homepage_load.js` | Repeated loads of the target's start page |
+| `checkout_flow.js` | HTTP walk through the paths listed in `flow_paths` |
+
+Run them from the dashboard sidebar (**Load test (k6)**) or with `pytest -m performance`.
+
+## 🐳 Docker
+
+One image bundles Playwright browsers, k6 and Allure, so local and CI runs behave the same.
+
+```bash
+docker compose -f docker/docker-compose.yml run --rm tests      # smoke suite
+docker compose -f docker/docker-compose.yml run --rm tests \
+    python -m pytest -m regression -n auto                      # any pytest command
+docker compose -f docker/docker-compose.yml up dashboard        # dashboard on :8501
+```
+
+The dashboard is then on <http://localhost:8501>. Secrets come from `.env` at
+runtime and are never baked into the image.
+
+## 🔁 CI/CD
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| [`ci-tests.yml`](.github/workflows/ci-tests.yml) | push / PR to `main`, `develop`; manual | Lint + unit tests, smoke on Chromium, Firefox and WebKit with one retry, merged Allure results. Manual runs choose suite, environment and an optional k6 job |
+| [`nightly-regression.yml`](.github/workflows/nightly-regression.yml) | 02:00 UTC daily | Full suite × 3 browsers, k6 smoke, merged HTML Allure report |
+
+Each job posts a pass/fail table with the failing tests to its **job summary**. Set the
+repository variable `PUBLISH_ALLURE_PAGES=true` to publish the report to GitHub Pages
+with trend history.
+
+## ⚙️ Configuration
+
+| Variable | Purpose |
+|---|---|
+| `ENV` | Environment for Mode A (`dev` by default) |
+| `TARGET_URL` / `API_TARGET_URL` | Explicit UI / API base URL (overrides the environment) |
+| `SAUCE_USERNAME` / `SAUCE_PASSWORD` | Demo-app credentials used by the environment YAMLs |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | Enables AI failure analysis / overrides the model |
+| `LOG_LEVEL` | Framework log level (`INFO` by default) |
+| `ALLURE_SERVER_HOST` | Bind address of the dashboard's report server (`127.0.0.1`) |
+
+## 🛠️ Development
+
+```bash
+ruff check . && black --check . && pytest -m unit
+```
+
+Conventions: strict Page Object Model, configuration only through
+`config_loader.py` and fixtures, type hints and docstrings throughout.
+
+> [!NOTE]
+> If an Application Control policy blocks black's compiled wheel, install it as
+> pure Python: `pip install --force-reinstall --no-binary black black`.

@@ -58,6 +58,8 @@ with st.container(horizontal=True):
         f"{fmt_ms(timing.get('dom_content_loaded_ms'))} — measured cold, before the crawl.",
     )
 
+_KIND_LABELS = {"console-error": "console", "page-error": "exception"}
+
 link_columns = {
     "status": st.column_config.NumberColumn("Status", format="%d", width="small"),
     "url": st.column_config.LinkColumn("URL", width="large"),
@@ -92,13 +94,20 @@ with console_tab:
             "Hide third-party scripts",
             help="Errors emitted by scripts loaded from other origins (ads, analytics, widgets).",
         )
-        shown = first_party if hide_third_party else issues
+        shown = [
+            {**issue, "kind": _KIND_LABELS.get(issue["kind"], issue["kind"])}
+            for issue in (first_party if hide_third_party else issues)
+        ]
         st.dataframe(
             pd.DataFrame(shown) if shown else pd.DataFrame(columns=["kind", "page_url", "text"]),
             hide_index=True,
             column_order=["kind", "page_url", "text", "source_url", "third_party"],
             column_config={
-                "kind": st.column_config.TextColumn("Kind", width="small"),
+                "kind": st.column_config.TextColumn(
+                    "Kind",
+                    width="small",
+                    help="console = console.error output, exception = uncaught JS error",
+                ),
                 "page_url": st.column_config.LinkColumn("Page"),
                 "text": st.column_config.TextColumn("Message", width="large"),
                 "source_url": st.column_config.LinkColumn("Source"),

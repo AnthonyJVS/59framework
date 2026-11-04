@@ -41,15 +41,17 @@ with st.container(border=True):
         sparkline = len(recent) > 1  # a single point draws a meaningless chart
         rate = latest["pass_rate"]
         prev_rate = previous["pass_rate"] if previous else None
+        # Deltas only when something changed: "+0 pp" / "0" chips are noise.
+        rate_change = (
+            round((rate - prev_rate) * 100) if rate is not None and prev_rate is not None else 0
+        )
+        failed_change = latest["failed"] - previous["failed"] if previous else 0
         with st.container(horizontal=True):
             st.metric(
                 "Pass rate",
                 f"{rate:.0%}" if rate is not None else "—",
-                delta=(
-                    f"{(rate - prev_rate) * 100:+.0f} pp"
-                    if rate is not None and prev_rate is not None
-                    else None
-                ),
+                delta=f"{rate_change:+d} pp" if rate_change else None,
+                delta_description="vs previous run" if rate_change else None,
                 border=True,
                 chart_data=(
                     [(entry["pass_rate"] or 0) * 100 for entry in recent] if sparkline else None
@@ -59,7 +61,7 @@ with st.container(border=True):
             st.metric(
                 "Failed",
                 latest["failed"],
-                delta=latest["failed"] - previous["failed"] if previous else None,
+                delta=failed_change or None,
                 delta_color="inverse",
                 border=True,
             )
@@ -68,7 +70,7 @@ with st.container(border=True):
                 fmt_duration(latest["duration_s"]),
                 border=True,
                 chart_data=[entry["duration_s"] for entry in recent] if sparkline else None,
-                chart_type="bar",
+                chart_type="line",
             )
             green_streak = 0
             for entry in same_target:
